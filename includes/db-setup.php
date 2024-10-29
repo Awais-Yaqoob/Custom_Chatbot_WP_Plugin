@@ -6,19 +6,19 @@ function create_chatbot_flow_table() {
 
     $sql = "CREATE TABLE $table_name (
         id mediumint(9) NOT NULL AUTO_INCREMENT,
-        parent_id mediumint(9) DEFAULT NULL,
         question text NOT NULL,
         response_type varchar(50) NOT NULL,
         response_data text DEFAULT NULL,
-        PRIMARY KEY (id)
+        parent_id text DEFAULT NULL,  -- Update to text for JSON storage
+        is_option tinyint(1) DEFAULT 0,
+        PRIMARY KEY  (id)
     ) {$wpdb->get_charset_collate()};";
 
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
-
-    // Optionally insert initial data
-    insert_initial_data();
 }
+
+
 
 function insert_initial_data() {
     global $wpdb;
@@ -46,6 +46,3 @@ function insert_initial_data() {
         'response_data' => json_encode(['0-3 Years', '3-5 Years', 'Not Sure']),
     ]);
 }
-
-// Activation hook to create the database table
-register_activation_hook(__FILE__, 'create_chatbot_flow_table');
