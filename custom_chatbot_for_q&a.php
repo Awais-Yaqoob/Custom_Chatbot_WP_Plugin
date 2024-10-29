@@ -217,12 +217,12 @@ function chatbot_qa_page() {
     // Fetch all questions and options for display
     $qa_records = $wpdb->get_results("SELECT * FROM $table_name WHERE is_option = 0");
     foreach ($qa_records as $record): ?>
-       <li class="list-group-item d-flex justify-content-between align-items-center">
-    <span class="flex-grow-1 mr-3">
-      <b><?php echo esc_html($record->question); ?></b>
+       <li class="list-group-item d-flex justify-content-between align-items-center p-2">
+    <span class="flex-grow-1 mr-2">
+      <h6><?php echo esc_html($record->question); ?></h6>
 
     </span>
-    <div class="button-group ml-auto" style="width: 220px; display: flex;
+    <div class="button-group ml-auto" style="width: 120px; display: flex;
     justify-content: end; gap:10px;">
         <button type="button" class="btn btn-warning btn-sm" onclick="editQuestion(<?php echo $record->id; ?>)">Edit</button>
         <a href="?page=chatbot-qa&delete=<?php echo $record->id; ?>" onclick="return confirm('Are you sure?');" class="btn btn-danger btn-sm">Delete</a>
