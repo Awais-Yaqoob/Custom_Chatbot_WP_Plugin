@@ -15,21 +15,21 @@ if (!defined('ABSPATH')) {
 function react_chatbot_enqueue_scripts() {
     wp_enqueue_script(
         'react-chatbot-script',
-        plugins_url('assets/index-BtnCaO7Q.js', __FILE__), 
+        plugins_url('assets/index-BvubrvaF.js', __FILE__), 
         array(),
         null,
         true
     );
     wp_enqueue_style(
         'react-chatbot-style',
-        plugins_url('assets/index-ODLOZj0s.css', __FILE__)
+        plugins_url('assets/index-Cr6jIwaJ.css', __FILE__)
     );
 }
-add_action('wp_enqueue_scripts', 'react_chatbot_enqueue_scripts');
+add_action('wp_enqueue_scripts', 'react_chatbot_enqueue_scripts', 20);
 
 // Shortcode to render the chatbot
 function react_chatbot_render() {
-    return '<div class="awais-chatbot-container"><div id="root"></div></div>';
+    return '<div id="root"></div>';
 }
 add_shortcode('react_chatbot', 'react_chatbot_render');
 
