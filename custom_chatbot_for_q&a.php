@@ -103,7 +103,11 @@ function chatbot_qa_page() {
     $question = sanitize_text_field($_POST['question']);
     $response_type = sanitize_text_field($_POST['response_type']);
     $parent_ids = isset($_POST['parent_id']) ? json_decode(stripslashes($_POST['parent_id']), true) : [];
-    $parent_ids_serialized = !empty($parent_ids) ? json_encode($parent_ids) : null;
+    if (empty($parent_ids) || (is_array($parent_ids) && in_array(null, $parent_ids, true))) {
+    $parent_ids_serialized = null;
+} else {
+    $parent_ids_serialized = json_encode($parent_ids);
+}
     $response_data = '';
 
     // Check if response_type is "redirect" and save the link in response_data
@@ -111,23 +115,12 @@ function chatbot_qa_page() {
         $response_data = sanitize_text_field($_POST['redirect_link']);
     } elseif ($response_type === 'options') {
         // If it's "options," gather the options data
-        $options = isset($_POST['options']) ? array_map('sanitize_text_field', $_POST['options']) : [];
+       $options = isset($_POST['options']) ? array_filter(array_map('sanitize_text_field', $_POST['options'])) : [];
+
         $option_data = [];
-
-        foreach ($options as $option) {
-            $wpdb->insert($table_name, [
-                'question' => $option,
-                'parent_id' => $question_id,
-                'is_option' => 1,
-            ]);
-            $option_id = $wpdb->insert_id;
-            $option_data[] = ['id' => $option_id, 'text' => $option];
-        }
-
-        $response_data = json_encode($option_data);
     }
 
-    // Insert the question into the database
+    // Insert the main question into the database and get the ID
     $wpdb->insert($table_name, [
         'question' => $question,
         'response_type' => $response_type,
@@ -135,19 +128,55 @@ function chatbot_qa_page() {
         'response_data' => $response_data,
         'is_option' => 0,
     ]);
+
+    $question_id = $wpdb->insert_id; // Store the ID of the main question
+
+    if ($response_type === 'options' && !empty($options)) {
+        foreach ($options as $option) {
+            $wpdb->insert($table_name, [
+                'question' => $option,
+                'parent_id' => $question_id, // Set the parent_id to main question ID
+                'is_option' => 1,
+            ]);
+            $option_id = $wpdb->insert_id;
+            $option_data[] = ['id' => $option_id, 'text' => $option];
+        }
+
+        $response_data = json_encode($option_data);
+
+        // Update the main question with the options data
+        $wpdb->update($table_name, [
+            'response_data' => $response_data,
+        ], ['id' => $question_id]);
+    }
 }
+
 
 	
 	
 	
 	
 	
-    // Handle delete request
-    if (isset($_GET['delete'])) {
-        $id_to_delete = intval($_GET['delete']);
-        $wpdb->delete($table_name, ['id' => $id_to_delete]);
-        echo '<script>window.location.href="' . admin_url('admin.php?page=chatbot-qa') . '"</script>';
+   // Handle delete request
+if (isset($_GET['delete'])) {
+    $id_to_delete = intval($_GET['delete']);
+
+    // First, delete all child records
+    $child_ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM $table_name WHERE parent_id = %d", $id_to_delete));
+
+    if (!empty($child_ids)) {
+        foreach ($child_ids as $child_id) {
+            $wpdb->delete($table_name, ['id' => $child_id]);
+        }
     }
+
+    // Then delete the main record
+    $wpdb->delete($table_name, ['id' => $id_to_delete]);
+
+    // Redirect to refresh the page
+    echo '<script>window.location.href="' . admin_url('admin.php?page=chatbot-qa') . '"</script>';
+}
+
 
     // Fetch all options for parent selection
     $options_records = $wpdb->get_results("SELECT id, question FROM $table_name WHERE is_option = 1");
@@ -161,7 +190,7 @@ function chatbot_qa_page() {
     <form method="post" class="border p-4 bg-light rounded">
         <div class="form-group">
             <label for="question">Question</label>
-            <input type="text" name="question" class="form-control" required>
+            <input type="text" name="question" class="form-control" placeholder="How may I help you?" required>
         </div>
 
         <div class="form-group">
@@ -189,22 +218,50 @@ function chatbot_qa_page() {
             <textarea name="redirect_link" class="form-control" placeholder="Enter redirect URL"></textarea>
         </div>
 
-        <!-- Parent Options Multi-Select -->
-        <div class="form-group">
-            <label for="parent_id">Select Parent Options</label>
-            <div id="parent-options-container">
-                <input type="text" id="parent-search" class="form-control mb-2" placeholder="Type to search options...">
-                <div id="options-list" class="border rounded p-2 bg-white" style="max-height: 150px; overflow-y: auto; display: none;">
-                    <?php foreach ($options_records as $record): ?>
-                        <div class="option-item" data-id="<?php echo esc_attr($record->id); ?>">
-                            <?php echo esc_html($record->question); ?>
-                        </div>
-                    <?php endforeach; ?>
+    <!-- Parent Options Multi-Select -->
+<div class="form-group">
+    <label for="parent_id">Select Parent Options</label>
+    <div id="parent-options-container">
+        <input type="text" id="parent-search" class="form-control mb-2" placeholder="Type to search options...">
+        <div id="options-list" class="border rounded p-2 bg-white" style="max-height: 150px; overflow-y: auto; display: none;">
+		<?php	$has_null_parent = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE parent_id IS NULL");
+
+// Conditionally set the disabled class and text for "Parent Question"
+$parent_disabled_class = $has_null_parent > 0 ? 'disabled-option' : '';
+$parent_disabled_text = $has_null_parent > 0 ? ' (Already a parent)' : '';
+?>
+        <div class="option-item <?php echo esc_attr($parent_disabled_class); ?>" 
+     data-id="null" 
+     data-parent="true" 
+     <?php echo $has_null_parent > 0 ? 'data-disabled="true"' : ''; ?>>
+    Parent Question<?php echo $parent_disabled_text; ?>
+</div>
+
+
+			<?php 
+		
+            foreach ($options_records as $record): 
+                // Check if the option is a parent of any question
+                $is_parent = $wpdb->get_var($wpdb->prepare(
+                    "SELECT COUNT(*) FROM $table_name WHERE parent_id LIKE %s AND is_option = 0", 
+                    '%"'.esc_sql($record->id).'"%'
+                ));
+
+                // If $is_parent > 0, this option is already used as a parent
+                $disabled_class = $is_parent > 0 ? 'disabled-option' : '';
+                $disabled_text = $is_parent > 0 ? ' (Already a parent)' : '';
+            ?>
+                <div class="option-item <?php echo esc_attr($disabled_class); ?>" 
+                     data-id="<?php echo esc_attr($record->id); ?>"
+                     <?php echo $is_parent > 0 ? 'data-disabled="true"' : ''; ?>>
+                    <?php echo esc_html($record->id) . ' : ' . esc_html($record->question) . $disabled_text; ?>
                 </div>
-                <div id="selected-parents" class="mt-2"></div>
-                <input type="hidden" name="parent_id" id="parent_id">
-            </div>
+            <?php endforeach; ?>
         </div>
+        <div id="selected-parents" class="mt-2"></div>
+        <input type="hidden" name="parent_id" id="parent_id">
+    </div>
+</div>
 
         <button type="submit" name="submit" class="btn btn-primary">Add Q&A</button>
     </form>
@@ -220,6 +277,27 @@ function chatbot_qa_page() {
        <li class="list-group-item d-flex justify-content-between align-items-center p-2">
     <span class="flex-grow-1 mr-2">
       <h6><?php echo esc_html($record->question); ?></h6>
+	<?php
+// Check if the response_data is JSON
+if (is_string($record->response_data) && is_array(json_decode($record->response_data, true))) {
+    $child_options = json_decode($record->response_data);
+
+    // Loop through each option if it's an array of objects
+    foreach ($child_options as $option) {
+        if (isset($option->id) && isset($option->text)) {
+            echo '<span><b>ID:</b> ' . esc_html($option->id) . ', <b>Text:</b> ' . esc_html($option->text) . '</span><br>';
+        }
+		elseif (isset($option->text)) {
+            echo '<span><b>Text:</b> ' . esc_html($option->text) . '</span><br>';
+        }
+    }
+} else {
+    // Directly output if it's a plain string
+    echo '<span><b>URL:</b> ' . esc_html($record->response_data) . '</span><br>';
+}
+?>
+
+
 
     </span>
     <div class="button-group ml-auto" style="width: 120px; display: flex;
@@ -288,6 +366,11 @@ function chatbot_qa_page() {
     color: #ff0000;
     cursor: pointer;
 }
+		
+	.disabled-option {
+    pointer-events: none;
+    color: #ccc;
+}
 </style>
 
 	
@@ -308,74 +391,122 @@ function chatbot_qa_page() {
     }
     
 function addOptionField() {
-    var wrapper = document.getElementById("options-wrapper");
-    var newField = document.createElement("div");
-    newField.classList.add("option-field", "mb-2");
-    newField.innerHTML = '<input type="text" name="options[]" class="form-control" placeholder="New Option">';
-    wrapper.appendChild(newField); // Add new field to the end of the options wrapper
+    const wrapper = document.getElementById("options-wrapper");
+    const newField = document.createElement("div");
+    newField.classList.add("option-field", "mb-2", "d-flex");
+
+    newField.innerHTML = `
+        <input type="text" name="options[]" class="form-control" placeholder="New Option">
+        <button type="button" class="btn btn-danger btn-sm ml-2 remove-option-btn">&times;</button>
+    `;
+
+    // Append new field to options wrapper
+    wrapper.appendChild(newField);
+
+    // Add event listener to remove the new field
+    newField.querySelector(".remove-option-btn").addEventListener("click", function() {
+        wrapper.removeChild(newField);
+    });
 }
 
-
-
-    document.addEventListener('DOMContentLoaded', function() {
-        toggleOptionsFields();
-        const searchInput = document.getElementById('parent-search');
-        const optionsList = document.getElementById('options-list');
-        const selectedParentsContainer = document.getElementById('selected-parents');
-        const parentIdField = document.getElementById('parent_id');
-
-        let selectedOptions = [];
-
-        searchInput.addEventListener('input', function() {
-            const query = searchInput.value.toLowerCase();
-            const options = document.querySelectorAll('.option-item');
-            optionsList.style.display = 'block';
-
-            options.forEach(option => {
-                if (option.textContent.toLowerCase().includes(query)) {
-                    option.style.display = 'block';
-                } else {
-                    option.style.display = 'none';
-                }
-            });
-        });
-
-        document.querySelectorAll('.option-item').forEach(option => {
-            option.addEventListener('click', function() {
-                const id = option.getAttribute('data-id');
-                const text = option.textContent;
-
-                if (!selectedOptions.some(opt => opt.id === id)) {
-                    selectedOptions.push({ id, text });
-                    renderSelectedOptions();
-                    updateParentIdField();
-                }
-
-                searchInput.value = '';
-                optionsList.style.display = 'none';
-            });
-        });
-
-        selectedParentsContainer.addEventListener('click', function(e) {
-            if (e.target.classList.contains('remove-option')) {
-                const id = e.target.getAttribute('data-id');
-                selectedOptions = selectedOptions.filter(opt => opt.id !== id);
-                renderSelectedOptions();
-                updateParentIdField();
-            }
-        });
-
-        function renderSelectedOptions() {
-            selectedParentsContainer.innerHTML = selectedOptions.map(opt =>
-                `<span class="badge badge-primary mr-2">${opt.text} <button type="button" class="remove-option btn btn-sm btn-light ml-1" data-id="${opt.id}">x</button></span>`
-            ).join(' ');
-        }
-
-        function updateParentIdField() {
-            parentIdField.value = JSON.stringify(selectedOptions.map(opt => opt.id));
+// On form submission, exclude empty options
+document.querySelector('form').addEventListener('submit', function(e) {
+    // Remove any option fields with empty input values
+    document.querySelectorAll("input[name='options[]']").forEach(input => {
+        if (input.value.trim() === "") {
+            input.parentElement.remove();
         }
     });
-	   
+});
+
+
+
+
+   document.addEventListener('DOMContentLoaded', function() {
+    // Initial setup
+    const searchInput = document.getElementById('parent-search');
+    const optionsList = document.getElementById('options-list');
+    const selectedParentsContainer = document.getElementById('selected-parents');
+    const parentIdField = document.getElementById('parent_id');
+    const form = document.querySelector('form');
+    let selectedOptions = [];
+
+    // Prevent manual input, enforce selection from dropdown
+    searchInput.addEventListener('focus', function() {
+        searchInput.blur();  // Disable manual typing
+        optionsList.style.display = 'block';  // Show options when focused
+    });
+
+    // Search functionality for filtering options
+    searchInput.addEventListener('input', function() {
+        const query = searchInput.value.toLowerCase();
+        const options = document.querySelectorAll('.option-item');
+        optionsList.style.display = 'block';
+		
+        options.forEach(option => {
+            if (option.textContent.toLowerCase().includes(query)) {
+                option.style.display = 'block';
+				 
+            } else {
+                option.style.display = 'none';
+            }
+        });
+    });
+
+    // Add event listeners to option items for selection
+document.querySelectorAll('.option-item').forEach(option => {
+    if (option.hasAttribute('data-disabled')) return;
+	 
+	option.style.cursor = 'pointer';
+    option.addEventListener('click', function() {
+        const id = option.getAttribute('data-id') === "null" ? null : option.getAttribute('data-id');
+        const text = option.textContent;
+	
+        // Add to selected options if not already selected
+        if (!selectedOptions.some(opt => opt.id === id)) {
+            selectedOptions.push({ id, text });
+            renderSelectedOptions();
+            updateParentIdField();
+        }
+	 
+        // Clear search input and hide options list after selection
+        searchInput.value = '';
+        optionsList.style.display = 'none';
+    });
+});
+
+
+    // Handle removal of selected options
+    selectedParentsContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-option')) {
+            const id = e.target.getAttribute('data-id');
+            selectedOptions = selectedOptions.filter(opt => opt.id !== id);
+            renderSelectedOptions();
+            updateParentIdField();
+        }
+    });
+
+    // Render selected options in the container
+    function renderSelectedOptions() {
+        selectedParentsContainer.innerHTML = selectedOptions.map(opt =>
+            `<span class="badge badge-primary mr-2 mt-1">${opt.text} <button type="button" class="remove-option btn btn-sm btn-light ml-1" data-id="${opt.id}">x</button></span>`
+        ).join(' ');
+    }
+
+    // Update the hidden input field for selected parent IDs
+    function updateParentIdField() {
+        parentIdField.value = selectedOptions.length ? JSON.stringify(selectedOptions.map(opt => opt.id)) : '';
+    }
+
+    // Validate form submission to ensure a valid parent option is selected
+    form.addEventListener('submit', function(e) {
+        if (!selectedOptions.length) {
+            e.preventDefault();
+            alert('Please select a valid parent option from the list.');
+        }
+    });
+});
+
 	   
 	   
 	   
@@ -443,6 +574,9 @@ function closeEditForm() {
     document.getElementById("overlay").style.display = "none";
     document.getElementById("edit-form-container").style.display = "none";
 }
+	   
+	   
+	   
 	   
 </script>
 
