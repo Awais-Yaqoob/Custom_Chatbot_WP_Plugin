@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Custom Chatbot for Q&A
+Plugin Name: Advanced Custom Chatbot
 Description: A chatbot plugin for custom questions and answers.
 Version: 1.0
 Author: Awais Y.
@@ -56,47 +56,6 @@ function chatbot_admin_menu() {
 function chatbot_qa_page() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'chatbot_flow';
-
-    // Handle form submission
-//    // Handle form submission
-// if (isset($_POST['submit'])) {
-//     $question = sanitize_text_field($_POST['question']);
-//     $response_type = sanitize_text_field($_POST['response_type']);
-//     $options = isset($_POST['options']) ? array_map('sanitize_text_field', $_POST['options']) : [];
-
-//     // Get the parent IDs from the JSON-encoded hidden input and decode them into an array
-//     $parent_ids = isset($_POST['parent_id']) ? json_decode(stripslashes($_POST['parent_id']), true) : [];
-//     $parent_ids_serialized = !empty($parent_ids) ? json_encode($parent_ids) : null;
-
-//     // Debug: Check JSON encoding of parent_ids_serialized
-//     error_log('Parent IDs Serialized: ' . print_r($parent_ids_serialized, true));
-
-//     // Insert the main question into the database
-//     $wpdb->insert($table_name, [
-//         'question' => $question,
-//         'response_type' => $response_type,
-//         'parent_id' => $parent_ids_serialized, // Store as JSON
-//         'is_option' => 0, // Indicates this is a question, not an option
-//     ]);
-//     $question_id = $wpdb->insert_id;
-
-//     // Process each option
-//     $option_data = [];
-//     foreach ($options as $option) {
-//         $wpdb->insert($table_name, [
-//             'question' => $option,
-//             'parent_id' => $question_id,
-//             'is_option' => 1,
-//         ]);
-//         $option_id = $wpdb->insert_id;
-//         $option_data[] = ['id' => $option_id, 'text' => $option];
-//     }
-
-//     // Update the parent question with the response_data containing all options
-//     $wpdb->update($table_name, [
-//         'response_data' => json_encode($option_data) 
-//     ], ['id' => $question_id]);
-// }
 
 
 	if (isset($_POST['submit'])) {
@@ -184,139 +143,136 @@ if (isset($_GET['delete'])) {
     ?>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
-<div class="container my-5 d-flex">
-	<div class="col-md-6">
-    <h1 class="mb-4">Manage Chatbot Q&A</h1>
-    <form method="post" class="border p-4 bg-light rounded">
-        <div class="form-group">
-            <label for="question">Question</label>
-            <input type="text" name="question" class="form-control" placeholder="How may I help you?" required>
-        </div>
-
-        <div class="form-group">
-            <label for="response_type">Response Type</label>
-            <select name="response_type" id="response_type" class="form-control" required onchange="toggleOptionsFields()">
-                <option value="options">Options</option>
-                <option value="redirect">Redirect</option>
-            </select>
-        </div>
-
-        <!-- Dynamic Options Fields -->
-        <div id="options-container">
-    <label>Options</label>
-    <div id="options-wrapper">
-        <div class="option-field mb-2">
-            <input type="text" name="options[]" class="form-control" placeholder="Option 1">
+<div class="container my-5 d-flex" style="min-width: 100%;">
+    <!-- Sidebar with Tabs -->
+    <div class="col-md-3" >
+        <div class="border p-4 rounded" style="min-height: 100%; background-color: black;" >
+            <h3 style="color: white;">Settings</h3>
+            <ul class="nav nav-pills flex-column gap-3 pt-4" id="sidebar-tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" style="color: white; background-color:inherit; font-size:20px; font-weight:600;" href="#add-new-tab" data-toggle="tab">Add New</a>
+                </li>
+                <li class="nav-item" >
+                    <a class="nav-link" style="color: white; font-size:20px; font-weight:600; margin-top:10px;" href="#existing-questions-tab" data-toggle="tab">Existing Questions</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" style="color: white; font-size:20px; font-weight:600; margin-top:10px;" href="#appearance-tab" data-toggle="tab">Appearance</a>
+                </li>
+            </ul>
         </div>
     </div>
-    <button type="button" class="btn btn-secondary btn-sm mt-2" onclick="addOptionField()">Add More Option</button>
-</div>
 
-        <!-- Text Area for 'Redirect' Type -->
-        <div id="redirect-container" class="form-group" style="display: none;">
-            <label>Redirect Link</label>
-            <textarea name="redirect_link" class="form-control" placeholder="Enter redirect URL"></textarea>
-        </div>
+    <!-- Main Content Area -->
+    <div class="col-md-9">
+        <div class="tab-content">
+            <!-- Add New Tab -->
+            <div class="tab-pane fade show active" id="add-new-tab">
+				<div class="border p-4 rounded mb-4" style="background-color: black;">
+					 <h4 style="color: white;">Add New Question</h4>
+				</div>
+                <form method="post" class="border p-4 rounded">
+                    <div class="form-group customQy-dashboard-form">
+                        <label for="question">Question</label>
+                        <input type="text" name="question" class="form-control" placeholder="How may I help you?" required>
+                    </div>
+                    <div class="form-group customQy-dashboard-form">
+                        <label for="response_type">Response Type</label>
+                        <select name="response_type" id="response_type" class="form-control customQy-dashboard-form" required onchange="toggleOptionsFields()">
+                            <option value="options">Options</option>
+                            <option value="redirect">Redirect</option>
+                        </select>
+                    </div>
 
-    <!-- Parent Options Multi-Select -->
-<div class="form-group">
-    <label for="parent_id">Select Parent Options</label>
-    <div id="parent-options-container">
-        <input type="text" id="parent-search" class="form-control mb-2" placeholder="Type to search options...">
-        <div id="options-list" class="border rounded p-2 bg-white" style="max-height: 150px; overflow-y: auto; display: none;">
-		<?php	$has_null_parent = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE parent_id IS NULL");
+                    <div id="options-container" class="customQy-dashboard-form">
+                        <label>Options</label>
+                        <div id="options-wrapper">
+                            <div class="option-field mb-2 d-flex customQy-dashboard-form">
+                                <input type="text" name="options[]" class="form-control" placeholder="Option">
+                                
+                            </div>
+                        </div>
+<!-- 						<button type="button" class="btn btn-danger btn-sm ml-2" onclick="this.parentNode.remove()">x</button> -->
+                        <button type="button" class="btn btn-secondary btn-sm mb-2" onclick="addOptionField()">Add Option</button>
+                    </div>
 
-// Conditionally set the disabled class and text for "Parent Question"
-$parent_disabled_class = $has_null_parent > 0 ? 'disabled-option' : '';
-$parent_disabled_text = $has_null_parent > 0 ? ' (Already a parent)' : '';
-?>
-        <div class="option-item <?php echo esc_attr($parent_disabled_class); ?>" 
-     data-id="null" 
-     data-parent="true" 
-     <?php echo $has_null_parent > 0 ? 'data-disabled="true"' : ''; ?>>
-    Parent Question<?php echo $parent_disabled_text; ?>
-</div>
+                    <div id="redirect-container" class="form-group customQy-dashboard-form" style="display: none;">
+                        <label>Redirect Link</label>
+                        <textarea name="redirect_link" class="form-control" placeholder="Enter redirect URL"></textarea>
+                    </div>
 
+                    <div class="form-group customQy-dashboard-form">
+                        <label for="parent_id">Select Parent Options</label>
+                        <div id="parent-options-container">
+                            <input type="text" id="parent-search" class="form-control mb-2" placeholder="Type to search options...">
+                            <div id="options-list" class="border rounded p-2 bg-white" style="max-height: 150px; overflow-y: auto; display: none;">
+                                <?php $has_null_parent = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE parent_id IS NULL");
+                                $parent_disabled_class = $has_null_parent > 0 ? 'disabled-option' : '';
+                                $parent_disabled_text = $has_null_parent > 0 ? ' (Already a parent)' : ''; ?>
+                                <div class="option-item <?php echo esc_attr($parent_disabled_class); ?>" data-id="null" data-parent="true" <?php echo $has_null_parent > 0 ? 'data-disabled="true"' : ''; ?>>Parent Question<?php echo $parent_disabled_text; ?></div>
 
-			<?php 
-		
-            foreach ($options_records as $record): 
-                // Check if the option is a parent of any question
-                $is_parent = $wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM $table_name WHERE parent_id LIKE %s AND is_option = 0", 
-                    '%"'.esc_sql($record->id).'"%'
-                ));
+                                <?php foreach ($options_records as $record):
+                                    $is_parent = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE parent_id LIKE %s AND is_option = 0", '%"'.esc_sql($record->id).'"%'));
+                                    $disabled_class = $is_parent > 0 ? 'disabled-option' : '';
+                                    $disabled_text = $is_parent > 0 ? ' (Already a parent)' : ''; ?>
+                                    <div class="option-item <?php echo esc_attr($disabled_class); ?>" data-id="<?php echo esc_attr($record->id); ?>" <?php echo $is_parent > 0 ? 'data-disabled="true"' : ''; ?>>
+                                        <?php echo esc_html($record->id) . ' : ' . esc_html($record->question) . $disabled_text; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <div id="selected-parents" class="mt-2"></div>
+                            <input type="hidden" name="parent_id" id="parent_id">
+                        </div>
+                    </div>
 
-                // If $is_parent > 0, this option is already used as a parent
-                $disabled_class = $is_parent > 0 ? 'disabled-option' : '';
-                $disabled_text = $is_parent > 0 ? ' (Already a parent)' : '';
-            ?>
-                <div class="option-item <?php echo esc_attr($disabled_class); ?>" 
-                     data-id="<?php echo esc_attr($record->id); ?>"
-                     <?php echo $is_parent > 0 ? 'data-disabled="true"' : ''; ?>>
-                    <?php echo esc_html($record->id) . ' : ' . esc_html($record->question) . $disabled_text; ?>
-                </div>
-            <?php endforeach; ?>
-        </div>
-        <div id="selected-parents" class="mt-2"></div>
-        <input type="hidden" name="parent_id" id="parent_id">
-    </div>
-</div>
+                    <button type="submit" name="submit" class="btn btn-primary customQy-form-btn">Add Question</button>
+                </form>
+            </div>
 
-        <button type="submit" name="submit" class="btn btn-primary">Add Q&A</button>
-    </form>
-</div>
-	
-	<div class="col-md-6">
-    <h3 class="mb-4">Existing Questions</h3>
-    <ul class="list-group">
-    <?php
-    // Fetch all questions and options for display
-    $qa_records = $wpdb->get_results("SELECT * FROM $table_name WHERE is_option = 0");
-    foreach ($qa_records as $record): ?>
-       <li class="list-group-item d-flex justify-content-between align-items-center p-2">
-    <span class="flex-grow-1 mr-2">
-      <h6><?php echo esc_html($record->question); ?></h6>
-	<?php
-// Check if the response_data is JSON
-if (is_string($record->response_data) && is_array(json_decode($record->response_data, true))) {
-    $child_options = json_decode($record->response_data);
-
-    // Loop through each option if it's an array of objects
-    foreach ($child_options as $option) {
-        if (isset($option->id) && isset($option->text)) {
-            echo '<span><b>ID:</b> ' . esc_html($option->id) . ', <b>Text:</b> ' . esc_html($option->text) . '</span><br>';
-        }
-		elseif (isset($option->text)) {
-            echo '<span><b>Text:</b> ' . esc_html($option->text) . '</span><br>';
-        }
-    }
-} else {
-    // Directly output if it's a plain string
-    echo '<span><b>URL:</b> ' . esc_html($record->response_data) . '</span><br>';
-}
-?>
-
-
-
-    </span>
-    <div class="button-group ml-auto" style="width: 120px; display: flex;
-    justify-content: end; gap:10px;">
-        <button type="button" class="btn btn-warning btn-sm" onclick="editQuestion(<?php echo $record->id; ?>)">Edit</button>
-        <a href="?page=chatbot-qa&delete=<?php echo $record->id; ?>" onclick="return confirm('Are you sure?');" class="btn btn-danger btn-sm">Delete</a>
-    </div>
-</li>
-
-    <?php endforeach; ?>
-</ul>
-</div>
-	
-	
-	<!-- Overlay Background -->
-<div id="overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 99;">
+            <!-- Existing Questions Tab -->
+            <div class="tab-pane fade" id="existing-questions-tab">
+               <div class="border p-4 rounded mb-4" style="background-color: black;">
+					 <h4 style="color: white;">Existing Questions</h4>
+				</div>
+                <ul class="list-group border p-2 rounded" style="height: 500px; overflow-y:scroll;">
+                    <?php $qa_records = $wpdb->get_results("SELECT * FROM $table_name WHERE is_option = 0");
+                    foreach ($qa_records as $record): ?>
+                        <li class="list-group-item p-3 border-0" style="border-bottom: 1px solid rgba(0, 0, 0, .3) !important;">
+                           		<div class="d-flex justify-content-between align-items-center">
+									<h6><?php echo esc_html($record->question); ?></h6>
+									<div class="button-group  ml-auto" style="display: flex; justify-content: end; gap:10px;">
+                                <button type="button" class="btn btn-warning btn-sm" onclick="editQuestion(<?php echo $record->id; ?>)">Edit</button>
+                                <a href="?page=chatbot-qa&delete=<?php echo $record->id; ?>" onclick="return confirm('Are you sure?');" class="btn btn-danger btn-sm">Delete</a>
+                            </div>
+							</div>
+                                
+								<div class="row p-2">
+									
+							
+                                <?php if (is_string($record->response_data) && is_array(json_decode($record->response_data, true))): $child_options = json_decode($record->response_data);
+                                    foreach ($child_options as $option) {
+                                        if (isset($option->id) && isset($option->text)) {
+                                            echo '<div class="border rounded bg-light p-2 column m-1" ><span><b>ID:</b> ' . esc_html($option->id) . ', <b>Text:</b> ' . esc_html($option->text) . '</span></div><br>';
+                                        } elseif (isset($option->text)) {
+                                            echo '<div class="border rounded bg-light p-2 column m-1"><span><b>Text:</b> ' . esc_html($option->text) . '</span></div><br>';
+                                        }
+                                    }
+                                else:
+                                    echo '<div class="border rounded bg-light p-2 column m-1"><span><b>URL:</b> ' . esc_html($record->response_data) . '</span></div><br>';
+                                endif; ?>
+                            
+									</div>
+                            
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+			
+			
+				<!-- Overlay Background -->
+<div id="customQY-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 99;">
 </div>
 <!-- Edit Form Container -->
-<div id="edit-form-container" class="mt-4" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; background-color: white; padding: 30px; width: 50%; border-radius: 8px;">
+<div id="customQY-edit-form-container" class="mt-4" style="display: none; position: fixed; top: 50%; left: 60%; transform: translate(-50%, -50%); z-index: 100; background-color: white; padding: 30px; width: 50%; border-radius: 8px;">
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <h3>Edit Question</h3>
         <!-- Close Button -->
@@ -324,12 +280,12 @@ if (is_string($record->response_data) && is_array(json_decode($record->response_
     </div>
     <form method="post">
         <input type="hidden" name="edit_id" id="edit_id">
-        <div class="form-group">
+        <div class="form-group customQy-dashboard-form">
             <label for="edit_question">Question</label>
             <input type="text" name="edit_question" id="edit_question" class="form-control" required>
         </div>
 
-        <div class="form-group">
+        <div class="form-group customQy-dashboard-form">
             <label for="edit_response_type">Response Type</label>
             <select name="edit_response_type" id="edit_response_type" class="form-control" onchange="toggleEditOptionsFields()" required>
                 <option value="options">Options</option>
@@ -337,32 +293,63 @@ if (is_string($record->response_data) && is_array(json_decode($record->response_
             </select>
         </div>
 
-        <div id="edit-options-container" class="form-group">
+        <div id="edit-options-container" class="form-group customQy-dashboard-form">
             <label>Options</label>
             <div id="edit-options-wrapper"></div>
             <button type="button" class="btn btn-secondary btn-sm" onclick="addEditOptionField()">Add More Option</button>
         </div>
 
-        <div id="edit-redirect-container" class="form-group" style="display: none;">
+        <div id="edit-redirect-container" class="form-group customQy-dashboard-form" style="display: none;">
             <label>Redirect Link</label>
             <textarea name="edit_redirect_link" id="edit_redirect_link" class="form-control" placeholder="Enter redirect URL"></textarea>
         </div>
 
-        <button type="submit" name="update_question" class="btn btn-primary">Update Question</button>
+        <button type="submit" name="update_question" class="btn btn-primary customQy-form-btn">Update Question</button>
     </form>
 </div>
 
-
+            <!-- Appearance Tab -->
+            <div class="tab-pane fade" id="appearance-tab">
+                <div class="border p-4 rounded mb-4" style="background-color: black;">
+					 <h4 style="color: white;">Set Appearance</h4>
+				</div>
+                <form id="appearance-form" class="border p-4 rounded">
+                    <div class="form-group customQy-dashboard-form">
+                        <label for="logo">Logo</label>
+                        <input type="file" id="logo" name="logo" class="form-control">
+                    </div>
+                    <div class="form-group customQy-dashboard-form">
+                        <label for="font">Font Selection</label>
+                        <select id="font" name="font" class="form-control">
+                            <option value="Arial">Arial</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                            <option value="Helvetica">Helvetica</option>
+                        </select>
+                    </div>
+                    <div class="form-group customQy-dashboard-form">
+                        <label for="color">Primary Color</label>
+                        <input type="color" id="color" name="color" class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-primary customQy-form-btn">Save Appearance Settings</button>
+                </form>
+            </div>
+        </div>
+    </div>
+	
+	
+	
+	
 	<style>
-#overlay {
+		
+		#customQY-overlay {
     transition: opacity 0.3s ease;
 }
 
-#edit-form-container span {
+#customQY-edit-form-container span {
     color: #333;
 }
 
-#edit-form-container span:hover {
+#customQY-edit-form-container span:hover {
     color: #ff0000;
     cursor: pointer;
 }
@@ -371,16 +358,89 @@ if (is_string($record->response_data) && is_array(json_decode($record->response_
     pointer-events: none;
     color: #ccc;
 }
+		.customQy-dashboard-form label{
+			font-weight:600;
+		}
+		.customQy-dashboard-form input{
+			border: 1px solid #ccc;
+			width: 100%;
+		}
+		.customQy-dashboard-form select{
+			border: 1px solid #ccc;
+			width: 100%;
+		}
+		.customQy-form-btn, .customQy-form-btn:hover{
+			background-color:black;
+			border:none;
+		}
+		.custom-QY-active-tab-style{
+			color: black !important;
+    		background-color: white !important;
+    		font-weight: 600;
+			border:none;
+		}
+		a:focus{
+			border:none;
+			box-shadow:none;
+		}
+	
+		.customQy-form-btn:focus{
+			background-color:black;
+			border:none;
+			box-shadow:none;
+		}
+		.customQy-form-btn:not(:disabled):not(.disabled).active, .customQy-form-btn:not(:disabled):not(.disabled):active, .show>.customQy-form-btn.dropdown-toggle{
+			background-color:black;
+			border:none;
+			box-shadow:none;
+		}
 </style>
-
-	
-	
-	
-	
 </div>
 
 
+
+
+
    <script>
+	   
+	  <!-- Tab Switching Script -->
+document.addEventListener('DOMContentLoaded', function() {
+    // Initially apply active styling to the default active tab
+    const defaultActiveTab = document.querySelector('#sidebar-tabs a.active');
+    if (defaultActiveTab) {
+        defaultActiveTab.classList.add('custom-QY-active-tab-style');
+        document.querySelector(defaultActiveTab.getAttribute('href')).classList.add('show', 'active');
+    }
+
+    document.querySelectorAll('#sidebar-tabs a').forEach(function(tab) {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Remove active styling from all tabs
+            document.querySelectorAll('#sidebar-tabs a').forEach(function(otherTab) {
+                otherTab.classList.remove('custom-QY-active-tab-style');
+            });
+
+            // Hide all tab panes and remove active class
+            document.querySelectorAll('.tab-pane').forEach(function(content) {
+                content.classList.remove('show', 'active');
+            });
+
+            // Show the selected tab pane and add active class
+            document.querySelector(tab.getAttribute('href')).classList.add('show', 'active');
+
+            // Apply active styling to the clicked tab
+            tab.classList.add('custom-QY-active-tab-style');
+        });
+    });
+});
+
+
+
+	   
+	   
+	   
+	   
     function toggleOptionsFields() {
         var responseType = document.getElementById("response_type").value;
         var optionsContainer = document.getElementById("options-container");
@@ -396,8 +456,8 @@ function addOptionField() {
     newField.classList.add("option-field", "mb-2", "d-flex");
 
     newField.innerHTML = `
-        <input type="text" name="options[]" class="form-control" placeholder="New Option">
-        <button type="button" class="btn btn-danger btn-sm ml-2 remove-option-btn">&times;</button>
+        <input type="text" name="options[]" class="form-control " placeholder="New Option">
+        <button type="button" class="btn btn-danger btn-sm ml-2 remove-option-btn customQy-form-btn">&times;</button>
     `;
 
     // Append new field to options wrapper
@@ -559,8 +619,8 @@ document.querySelectorAll('.option-item').forEach(option => {
             }
 
             // Show the edit form
-            document.getElementById("edit-form-container").style.display = 'block';
-			 document.getElementById("overlay").style.display = "block";
+            document.getElementById("customQY-edit-form-container").style.display = 'block';
+			 document.getElementById("customQY-overlay").style.display = "block";
         } else {
             console.error('Record not found for editing');
         }
@@ -571,8 +631,8 @@ document.querySelectorAll('.option-item').forEach(option => {
 	   
 
 function closeEditForm() {
-    document.getElementById("overlay").style.display = "none";
-    document.getElementById("edit-form-container").style.display = "none";
+    document.getElementById("customQY-overlay").style.display = "none";
+    document.getElementById("customQY-edit-form-container").style.display = "none";
 }
 	   
 	   
