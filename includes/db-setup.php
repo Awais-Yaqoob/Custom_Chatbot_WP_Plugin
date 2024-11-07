@@ -1,48 +1,35 @@
 <?php
-
-function create_chatbot_flow_table() {
+function create_chatbot_tables() {
     global $wpdb;
-    $table_name = $wpdb->prefix . 'chatbot_flow';
+    $chatbot_table = $wpdb->prefix . 'customQY_chatbot_flow';
+    $appearance_table = $wpdb->prefix . 'customQY_appearance_settings';
 
-    $sql = "CREATE TABLE $table_name (
+    $charset_collate = $wpdb->get_charset_collate();
+
+    // Table for chatbot questions and responses
+    $sql1 = "CREATE TABLE $chatbot_table (
         id mediumint(9) NOT NULL AUTO_INCREMENT,
         question text NOT NULL,
         response_type varchar(50) NOT NULL,
         response_data text DEFAULT NULL,
-        parent_id text DEFAULT NULL,  -- Update to text for JSON storage
+        parent_id text DEFAULT NULL,
         is_option tinyint(1) DEFAULT 0,
         PRIMARY KEY  (id)
-    ) {$wpdb->get_charset_collate()};";
+    ) $charset_collate;";
+
+    // Table for appearance settings
+    $sql2 = "CREATE TABLE $appearance_table (
+        id mediumint(9) NOT NULL AUTO_INCREMENT,
+        title varchar(255) DEFAULT NULL,
+        logo_url varchar(255) DEFAULT NULL,
+        font varchar(50) DEFAULT NULL,
+        primary_color varchar(7) DEFAULT NULL,
+        secondary_color varchar(7) DEFAULT NULL,
+        logo_size int DEFAULT NULL,
+        PRIMARY KEY  (id)
+    ) $charset_collate;";
 
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-    dbDelta($sql);
-}
-
-
-
-function insert_initial_data() {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'chatbot_flow';
-
-    // Clear existing data
-    $wpdb->query("TRUNCATE TABLE $table_name");
-
-    // Insert initial data
-    $wpdb->insert($table_name, [
-        'question' => 'How may I help you?',
-        'response_type' => 'options',
-        'response_data' => json_encode(['Need Help', 'Verification Insurance', 'Ask A Question', 'Tour Our Facility']),
-    ]);
-    $wpdb->insert($table_name, [
-        'question' => 'What Symptoms are you having?',
-        'parent_id' => 1,
-        'response_type' => 'options',
-        'response_data' => json_encode(['Anxiety', 'Depression', 'Insomnia', 'Mood Disorder', 'Self Harm', 'Suicidal Thoughts']),
-    ]);
-    $wpdb->insert($table_name, [
-        'question' => 'How long have you been suffering from Anxiety?',
-        'parent_id' => 2,
-        'response_type' => 'options',
-        'response_data' => json_encode(['0-3 Years', '3-5 Years', 'Not Sure']),
-    ]);
+    dbDelta($sql1);
+    dbDelta($sql2);
 }

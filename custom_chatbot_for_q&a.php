@@ -15,17 +15,30 @@ if (!defined('ABSPATH')) {
 function react_chatbot_enqueue_scripts() {
     wp_enqueue_script(
         'react-chatbot-script',
-        plugins_url('assets/index-BvubrvaF.js', __FILE__), 
+        plugins_url('assets/index-35ZY6q-E.js', __FILE__), 
         array(),
         null,
         true
     );
     wp_enqueue_style(
         'react-chatbot-style',
-        plugins_url('assets/index-Cr6jIwaJ.css', __FILE__)
+        plugins_url('assets/index-Dt1CQmON.css', __FILE__)
     );
 }
 add_action('wp_enqueue_scripts', 'react_chatbot_enqueue_scripts', 20);
+
+
+function enqueue_custom_media_uploader($hook) {
+    // Restrict to the plugin’s admin page
+    if ($hook !== 'toplevel_page_chatbot-qa') {
+        return;
+    }
+
+    wp_enqueue_media(); // This function loads the media uploader
+    wp_enqueue_script('wp-color-picker');
+    wp_enqueue_style('wp-color-picker');
+}
+add_action('admin_enqueue_scripts', 'enqueue_custom_media_uploader');
 
 // Shortcode to render the chatbot
 function react_chatbot_render() {
@@ -55,8 +68,7 @@ function chatbot_admin_menu() {
 // Admin page for managing questions
 function chatbot_qa_page() {
     global $wpdb;
-    $table_name = $wpdb->prefix . 'chatbot_flow';
-
+    $table_name = $wpdb->prefix . 'customQY_chatbot_flow';
 
 	if (isset($_POST['submit'])) {
     $question = sanitize_text_field($_POST['question']);
@@ -110,11 +122,6 @@ function chatbot_qa_page() {
     }
 }
 
-
-	
-	
-	
-	
 	
    // Handle delete request
 if (isset($_GET['delete'])) {
@@ -140,515 +147,14 @@ if (isset($_GET['delete'])) {
     // Fetch all options for parent selection
     $options_records = $wpdb->get_results("SELECT id, question FROM $table_name WHERE is_option = 1");
 
-    ?>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-
-<div class="container my-5 d-flex" style="min-width: 100%;">
-    <!-- Sidebar with Tabs -->
-    <div class="col-md-3" >
-        <div class="border p-4 rounded" style="min-height: 100%; background-color: black;" >
-            <h3 style="color: white;">Settings</h3>
-            <ul class="nav nav-pills flex-column gap-3 pt-4" id="sidebar-tabs">
-                <li class="nav-item">
-                    <a class="nav-link active" style="color: white; background-color:inherit; font-size:20px; font-weight:600;" href="#add-new-tab" data-toggle="tab">Add New</a>
-                </li>
-                <li class="nav-item" >
-                    <a class="nav-link" style="color: white; font-size:20px; font-weight:600; margin-top:10px;" href="#existing-questions-tab" data-toggle="tab">Existing Questions</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" style="color: white; font-size:20px; font-weight:600; margin-top:10px;" href="#appearance-tab" data-toggle="tab">Appearance</a>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Main Content Area -->
-    <div class="col-md-9">
-        <div class="tab-content">
-            <!-- Add New Tab -->
-            <div class="tab-pane fade show active" id="add-new-tab">
-				<div class="border p-4 rounded mb-4" style="background-color: black;">
-					 <h4 style="color: white;">Add New Question</h4>
-				</div>
-                <form method="post" class="border p-4 rounded">
-                    <div class="form-group customQy-dashboard-form">
-                        <label for="question">Question</label>
-                        <input type="text" name="question" class="form-control" placeholder="How may I help you?" required>
-                    </div>
-                    <div class="form-group customQy-dashboard-form">
-                        <label for="response_type">Response Type</label>
-                        <select name="response_type" id="response_type" class="form-control customQy-dashboard-form" required onchange="toggleOptionsFields()">
-                            <option value="options">Options</option>
-                            <option value="redirect">Redirect</option>
-                        </select>
-                    </div>
-
-                    <div id="options-container" class="customQy-dashboard-form">
-                        <label>Options</label>
-                        <div id="options-wrapper">
-                            <div class="option-field mb-2 d-flex customQy-dashboard-form">
-                                <input type="text" name="options[]" class="form-control" placeholder="Option">
-                                
-                            </div>
-                        </div>
-<!-- 						<button type="button" class="btn btn-danger btn-sm ml-2" onclick="this.parentNode.remove()">x</button> -->
-                        <button type="button" class="btn btn-secondary btn-sm mb-2" onclick="addOptionField()">Add Option</button>
-                    </div>
-
-                    <div id="redirect-container" class="form-group customQy-dashboard-form" style="display: none;">
-                        <label>Redirect Link</label>
-                        <textarea name="redirect_link" class="form-control" placeholder="Enter redirect URL"></textarea>
-                    </div>
-
-                    <div class="form-group customQy-dashboard-form">
-                        <label for="parent_id">Select Parent Options</label>
-                        <div id="parent-options-container">
-                            <input type="text" id="parent-search" class="form-control mb-2" placeholder="Type to search options...">
-                            <div id="options-list" class="border rounded p-2 bg-white" style="max-height: 150px; overflow-y: auto; display: none;">
-                                <?php $has_null_parent = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE parent_id IS NULL");
-                                $parent_disabled_class = $has_null_parent > 0 ? 'disabled-option' : '';
-                                $parent_disabled_text = $has_null_parent > 0 ? ' (Already a parent)' : ''; ?>
-                                <div class="option-item <?php echo esc_attr($parent_disabled_class); ?>" data-id="null" data-parent="true" <?php echo $has_null_parent > 0 ? 'data-disabled="true"' : ''; ?>>Parent Question<?php echo $parent_disabled_text; ?></div>
-
-                                <?php foreach ($options_records as $record):
-                                    $is_parent = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE parent_id LIKE %s AND is_option = 0", '%"'.esc_sql($record->id).'"%'));
-                                    $disabled_class = $is_parent > 0 ? 'disabled-option' : '';
-                                    $disabled_text = $is_parent > 0 ? ' (Already a parent)' : ''; ?>
-                                    <div class="option-item <?php echo esc_attr($disabled_class); ?>" data-id="<?php echo esc_attr($record->id); ?>" <?php echo $is_parent > 0 ? 'data-disabled="true"' : ''; ?>>
-                                        <?php echo esc_html($record->id) . ' : ' . esc_html($record->question) . $disabled_text; ?>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                            <div id="selected-parents" class="mt-2"></div>
-                            <input type="hidden" name="parent_id" id="parent_id">
-                        </div>
-                    </div>
-
-                    <button type="submit" name="submit" class="btn btn-primary customQy-form-btn">Add Question</button>
-                </form>
-            </div>
-
-            <!-- Existing Questions Tab -->
-            <div class="tab-pane fade" id="existing-questions-tab">
-               <div class="border p-4 rounded mb-4" style="background-color: black;">
-					 <h4 style="color: white;">Existing Questions</h4>
-				</div>
-                <ul class="list-group border p-2 rounded" style="height: 500px; overflow-y:scroll;">
-                    <?php $qa_records = $wpdb->get_results("SELECT * FROM $table_name WHERE is_option = 0");
-                    foreach ($qa_records as $record): ?>
-                        <li class="list-group-item p-3 border-0" style="border-bottom: 1px solid rgba(0, 0, 0, .3) !important;">
-                           		<div class="d-flex justify-content-between align-items-center">
-									<h6><?php echo esc_html($record->question); ?></h6>
-									<div class="button-group  ml-auto" style="display: flex; justify-content: end; gap:10px;">
-                                <button type="button" class="btn btn-warning btn-sm" onclick="editQuestion(<?php echo $record->id; ?>)">Edit</button>
-                                <a href="?page=chatbot-qa&delete=<?php echo $record->id; ?>" onclick="return confirm('Are you sure?');" class="btn btn-danger btn-sm">Delete</a>
-                            </div>
-							</div>
-                                
-								<div class="row p-2">
-									
-							
-                                <?php if (is_string($record->response_data) && is_array(json_decode($record->response_data, true))): $child_options = json_decode($record->response_data);
-                                    foreach ($child_options as $option) {
-                                        if (isset($option->id) && isset($option->text)) {
-                                            echo '<div class="border rounded bg-light p-2 column m-1" ><span><b>ID:</b> ' . esc_html($option->id) . ', <b>Text:</b> ' . esc_html($option->text) . '</span></div><br>';
-                                        } elseif (isset($option->text)) {
-                                            echo '<div class="border rounded bg-light p-2 column m-1"><span><b>Text:</b> ' . esc_html($option->text) . '</span></div><br>';
-                                        }
-                                    }
-                                else:
-                                    echo '<div class="border rounded bg-light p-2 column m-1"><span><b>URL:</b> ' . esc_html($record->response_data) . '</span></div><br>';
-                                endif; ?>
-                            
-									</div>
-                            
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-			
-			
-				<!-- Overlay Background -->
-<div id="customQY-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 99;">
-</div>
-<!-- Edit Form Container -->
-<div id="customQY-edit-form-container" class="mt-4" style="display: none; position: fixed; top: 50%; left: 60%; transform: translate(-50%, -50%); z-index: 100; background-color: white; padding: 30px; width: 50%; border-radius: 8px;">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h3>Edit Question</h3>
-        <!-- Close Button -->
-        <span onclick="closeEditForm()" style="cursor: pointer; font-size: 20px; font-weight: bold;">&times;</span>
-    </div>
-    <form method="post">
-        <input type="hidden" name="edit_id" id="edit_id">
-        <div class="form-group customQy-dashboard-form">
-            <label for="edit_question">Question</label>
-            <input type="text" name="edit_question" id="edit_question" class="form-control" required>
-        </div>
-
-        <div class="form-group customQy-dashboard-form">
-            <label for="edit_response_type">Response Type</label>
-            <select name="edit_response_type" id="edit_response_type" class="form-control" onchange="toggleEditOptionsFields()" required>
-                <option value="options">Options</option>
-                <option value="redirect">Redirect</option>
-            </select>
-        </div>
-
-        <div id="edit-options-container" class="form-group customQy-dashboard-form">
-            <label>Options</label>
-            <div id="edit-options-wrapper"></div>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="addEditOptionField()">Add More Option</button>
-        </div>
-
-        <div id="edit-redirect-container" class="form-group customQy-dashboard-form" style="display: none;">
-            <label>Redirect Link</label>
-            <textarea name="edit_redirect_link" id="edit_redirect_link" class="form-control" placeholder="Enter redirect URL"></textarea>
-        </div>
-
-        <button type="submit" name="update_question" class="btn btn-primary customQy-form-btn">Update Question</button>
-    </form>
-</div>
-
-            <!-- Appearance Tab -->
-            <div class="tab-pane fade" id="appearance-tab">
-                <div class="border p-4 rounded mb-4" style="background-color: black;">
-					 <h4 style="color: white;">Set Appearance</h4>
-				</div>
-                <form id="appearance-form" class="border p-4 rounded">
-                    <div class="form-group customQy-dashboard-form">
-                        <label for="logo">Logo</label>
-                        <input type="file" id="logo" name="logo" class="form-control">
-                    </div>
-                    <div class="form-group customQy-dashboard-form">
-                        <label for="font">Font Selection</label>
-                        <select id="font" name="font" class="form-control">
-                            <option value="Arial">Arial</option>
-                            <option value="Times New Roman">Times New Roman</option>
-                            <option value="Helvetica">Helvetica</option>
-                        </select>
-                    </div>
-                    <div class="form-group customQy-dashboard-form">
-                        <label for="color">Primary Color</label>
-                        <input type="color" id="color" name="color" class="form-control">
-                    </div>
-                    <button type="submit" class="btn btn-primary customQy-form-btn">Save Appearance Settings</button>
-                </form>
-            </div>
-        </div>
-    </div>
-	
-	
-	
-	
-	<style>
-		
-		#customQY-overlay {
-    transition: opacity 0.3s ease;
-}
-
-#customQY-edit-form-container span {
-    color: #333;
-}
-
-#customQY-edit-form-container span:hover {
-    color: #ff0000;
-    cursor: pointer;
-}
-		
-	.disabled-option {
-    pointer-events: none;
-    color: #ccc;
-}
-		.customQy-dashboard-form label{
-			font-weight:600;
-		}
-		.customQy-dashboard-form input{
-			border: 1px solid #ccc;
-			width: 100%;
-		}
-		.customQy-dashboard-form select{
-			border: 1px solid #ccc;
-			width: 100%;
-		}
-		.customQy-form-btn, .customQy-form-btn:hover{
-			background-color:black;
-			border:none;
-		}
-		.custom-QY-active-tab-style{
-			color: black !important;
-    		background-color: white !important;
-    		font-weight: 600;
-			border:none;
-		}
-		a:focus{
-			border:none;
-			box-shadow:none;
-		}
-	
-		.customQy-form-btn:focus{
-			background-color:black;
-			border:none;
-			box-shadow:none;
-		}
-		.customQy-form-btn:not(:disabled):not(.disabled).active, .customQy-form-btn:not(:disabled):not(.disabled):active, .show>.customQy-form-btn.dropdown-toggle{
-			background-color:black;
-			border:none;
-			box-shadow:none;
-		}
-</style>
-</div>
-
-
-
-
-
-   <script>
-	   
-	  <!-- Tab Switching Script -->
-document.addEventListener('DOMContentLoaded', function() {
-    // Initially apply active styling to the default active tab
-    const defaultActiveTab = document.querySelector('#sidebar-tabs a.active');
-    if (defaultActiveTab) {
-        defaultActiveTab.classList.add('custom-QY-active-tab-style');
-        document.querySelector(defaultActiveTab.getAttribute('href')).classList.add('show', 'active');
-    }
-
-    document.querySelectorAll('#sidebar-tabs a').forEach(function(tab) {
-        tab.addEventListener('click', function(e) {
-            e.preventDefault();
-
-            // Remove active styling from all tabs
-            document.querySelectorAll('#sidebar-tabs a').forEach(function(otherTab) {
-                otherTab.classList.remove('custom-QY-active-tab-style');
-            });
-
-            // Hide all tab panes and remove active class
-            document.querySelectorAll('.tab-pane').forEach(function(content) {
-                content.classList.remove('show', 'active');
-            });
-
-            // Show the selected tab pane and add active class
-            document.querySelector(tab.getAttribute('href')).classList.add('show', 'active');
-
-            // Apply active styling to the clicked tab
-            tab.classList.add('custom-QY-active-tab-style');
-        });
-    });
-});
-
-
-
-	   
-	   
-	   
-	   
-    function toggleOptionsFields() {
-        var responseType = document.getElementById("response_type").value;
-        var optionsContainer = document.getElementById("options-container");
-        var redirectContainer = document.getElementById("redirect-container");
-
-        optionsContainer.style.display = responseType === 'options' ? 'block' : 'none';
-        redirectContainer.style.display = responseType === 'redirect' ? 'block' : 'none';
-    }
-    
-function addOptionField() {
-    const wrapper = document.getElementById("options-wrapper");
-    const newField = document.createElement("div");
-    newField.classList.add("option-field", "mb-2", "d-flex");
-
-    newField.innerHTML = `
-        <input type="text" name="options[]" class="form-control " placeholder="New Option">
-        <button type="button" class="btn btn-danger btn-sm ml-2 remove-option-btn customQy-form-btn">&times;</button>
-    `;
-
-    // Append new field to options wrapper
-    wrapper.appendChild(newField);
-
-    // Add event listener to remove the new field
-    newField.querySelector(".remove-option-btn").addEventListener("click", function() {
-        wrapper.removeChild(newField);
-    });
-}
-
-// On form submission, exclude empty options
-document.querySelector('form').addEventListener('submit', function(e) {
-    // Remove any option fields with empty input values
-    document.querySelectorAll("input[name='options[]']").forEach(input => {
-        if (input.value.trim() === "") {
-            input.parentElement.remove();
-        }
-    });
-});
-
-
-
-
-   document.addEventListener('DOMContentLoaded', function() {
-    // Initial setup
-    const searchInput = document.getElementById('parent-search');
-    const optionsList = document.getElementById('options-list');
-    const selectedParentsContainer = document.getElementById('selected-parents');
-    const parentIdField = document.getElementById('parent_id');
-    const form = document.querySelector('form');
-    let selectedOptions = [];
-
-    // Prevent manual input, enforce selection from dropdown
-    searchInput.addEventListener('focus', function() {
-        searchInput.blur();  // Disable manual typing
-        optionsList.style.display = 'block';  // Show options when focused
-    });
-
-    // Search functionality for filtering options
-    searchInput.addEventListener('input', function() {
-        const query = searchInput.value.toLowerCase();
-        const options = document.querySelectorAll('.option-item');
-        optionsList.style.display = 'block';
-		
-        options.forEach(option => {
-            if (option.textContent.toLowerCase().includes(query)) {
-                option.style.display = 'block';
-				 
-            } else {
-                option.style.display = 'none';
-            }
-        });
-    });
-
-    // Add event listeners to option items for selection
-document.querySelectorAll('.option-item').forEach(option => {
-    if (option.hasAttribute('data-disabled')) return;
-	 
-	option.style.cursor = 'pointer';
-    option.addEventListener('click', function() {
-        const id = option.getAttribute('data-id') === "null" ? null : option.getAttribute('data-id');
-        const text = option.textContent;
-	
-        // Add to selected options if not already selected
-        if (!selectedOptions.some(opt => opt.id === id)) {
-            selectedOptions.push({ id, text });
-            renderSelectedOptions();
-            updateParentIdField();
-        }
-	 
-        // Clear search input and hide options list after selection
-        searchInput.value = '';
-        optionsList.style.display = 'none';
-    });
-});
-
-
-    // Handle removal of selected options
-    selectedParentsContainer.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-option')) {
-            const id = e.target.getAttribute('data-id');
-            selectedOptions = selectedOptions.filter(opt => opt.id !== id);
-            renderSelectedOptions();
-            updateParentIdField();
-        }
-    });
-
-    // Render selected options in the container
-    function renderSelectedOptions() {
-        selectedParentsContainer.innerHTML = selectedOptions.map(opt =>
-            `<span class="badge badge-primary mr-2 mt-1">${opt.text} <button type="button" class="remove-option btn btn-sm btn-light ml-1" data-id="${opt.id}">x</button></span>`
-        ).join(' ');
-    }
-
-    // Update the hidden input field for selected parent IDs
-    function updateParentIdField() {
-        parentIdField.value = selectedOptions.length ? JSON.stringify(selectedOptions.map(opt => opt.id)) : '';
-    }
-
-    // Validate form submission to ensure a valid parent option is selected
-    form.addEventListener('submit', function(e) {
-        if (!selectedOptions.length) {
-            e.preventDefault();
-            alert('Please select a valid parent option from the list.');
-        }
-    });
-});
-
-	   
-	   
-	   
-	document.addEventListener('DOMContentLoaded', function() {
-        const editButtons = document.querySelectorAll('.edit-btn');
-        
-        editButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const id = button.getAttribute('data-id');
-                editQuestion(id); // Call edit function with the question ID
-            });
-        });
-    });
-
-    function editQuestion(id) {
-        <?php
-        // Pass records to JavaScript
-        $js_records = json_encode($qa_records);
-        echo "const records = $js_records;";
-        ?>
-
-        // Find the question record by id
-        const record = records.find(r => r.id == id);
-
-        if (record) {
-            // Populate the edit form
-            document.getElementById("edit_id").value = record.id;
-            document.getElementById("edit_question").value = record.question;
-            document.getElementById("edit_response_type").value = record.response_type;
-
-            // Show options or redirect link based on response type
-            if (record.response_type === 'options') {
-                document.getElementById("edit-options-container").style.display = 'block';
-                document.getElementById("edit-redirect-container").style.display = 'none';
-                
-                const optionsWrapper = document.getElementById("edit-options-wrapper");
-                optionsWrapper.innerHTML = '';
-                const options = JSON.parse(record.response_data);
-                
-                options.forEach(opt => {
-                    const optionField = document.createElement("div");
-                    optionField.classList.add("mb-2");
-                    optionField.innerHTML = `<input type="text" name="edit_options[]" class="form-control" value="${opt.text}">`;
-                    optionsWrapper.appendChild(optionField);
-                });
-            } else if (record.response_type === 'redirect') {
-                document.getElementById("edit-options-container").style.display = 'none';
-                document.getElementById("edit-redirect-container").style.display = 'block';
-                document.getElementById("edit_redirect_link").value = record.response_data;
-            }
-
-            // Show the edit form
-            document.getElementById("customQY-edit-form-container").style.display = 'block';
-			 document.getElementById("customQY-overlay").style.display = "block";
-        } else {
-            console.error('Record not found for editing');
-        }
-    }
-
-
-	   
-	   
-
-function closeEditForm() {
-    document.getElementById("customQY-overlay").style.display = "none";
-    document.getElementById("customQY-edit-form-container").style.display = "none";
-}
-	   
-	   
-	   
-	   
-</script>
-
-
-    <?php
+    include plugin_dir_path(__FILE__) . 'includes/plugin-dashboard.php';
 }
 
 
 
 if (isset($_POST['update_question'])) {
     global $wpdb; // Ensure $wpdb is accessible
-    $table_name = $wpdb->prefix . 'chatbot_flow'; // Define table name
+    $table_name = $wpdb->prefix . 'customQY_chatbot_flow'; // Define table name
 
     $id = intval($_POST['edit_id']);
     $question = sanitize_text_field($_POST['edit_question']);
@@ -671,8 +177,48 @@ if (isset($_POST['update_question'])) {
 }
 
 
+function save_appearance_settings() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'customQY_appearance_settings';
+
+    // Gather form data
+    $title = sanitize_text_field($_POST['title']);
+    $logo_url = sanitize_text_field($_POST['logo']);
+    $font = sanitize_text_field($_POST['font']);
+    $primary_color = sanitize_hex_color($_POST['primary-color']);
+    $secondary_color = sanitize_hex_color($_POST['secondary-color']);
+    $logo_size = intval($_POST['logo-size']);
+
+    // Check if an appearance setting already exists
+    $existing_setting = $wpdb->get_row("SELECT * FROM $table_name LIMIT 1");
+
+    // Insert or update
+    if ($existing_setting) {
+        $wpdb->update($table_name, [
+            'title' => $title,
+            'logo_url' => $logo_url,
+            'font' => $font,
+            'primary_color' => $primary_color,
+            'secondary_color' => $secondary_color,
+            'logo_size' => $logo_size,
+        ], ['id' => $existing_setting->id]);
+    } else {
+        $wpdb->insert($table_name, [
+            'title' => $title,
+            'logo_url' => $logo_url,
+            'font' => $font,
+            'primary_color' => $primary_color,
+            'secondary_color' => $secondary_color,
+            'logo_size' => $logo_size,
+        ]);
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['appearance_form_submit'])) {
+    save_appearance_settings();
+}
 
 
 
 // Activation hook to create the database table
-register_activation_hook(__FILE__, 'create_chatbot_flow_table');
+register_activation_hook(__FILE__, 'create_chatbot_tables');
