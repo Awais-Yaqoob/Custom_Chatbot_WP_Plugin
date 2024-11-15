@@ -51,6 +51,7 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
                         <select name="response_type" id="response_type" class="form-control customQy-dashboard-form" required onchange="toggleOptionsFields()">
                             <option value="options">Options</option>
                             <option value="redirect">Redirect</option>
+							<option value="user-input">User Input</option>
                         </select>
                     </div>
 
@@ -69,6 +70,15 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
                     <div id="redirect-container" class="form-group customQy-dashboard-form" style="display: none;">
                         <label>Redirect Link</label>
                         <textarea name="redirect_link" class="form-control" placeholder="Enter redirect URL"></textarea>
+                    </div>
+					<div id="input-type-selector" class="form-group customQy-dashboard-form" style="display: none;">
+                        <label>Select input type</label>
+                        <select name="input-type" class="form-control" required>
+							<option value="user-question">User Statement/Question</option>
+							 <option value="user-name">User Name</option>
+                            <option value="user-phone">User Phone</option>
+							<option value="user-email">User Email</option>
+						</select>
                     </div>
 
                     <div class="form-group customQy-dashboard-form">
@@ -161,8 +171,11 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
             <select name="edit_response_type" id="edit_response_type" class="form-control" onchange="toggleEditOptionsFields()" required>
                 <option value="options">Options</option>
                 <option value="redirect">Redirect</option>
+				<option value="user-input">User Input</option>
             </select>
         </div>
+		
+		
 
         <div id="edit-options-container" class="form-group customQy-dashboard-form">
             <label>Options</label>
@@ -241,6 +254,28 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
             <input type="number" id="logo-size" name="logo-size" class="form-control" placeholder="e.g., 50"
                    value="<?php echo esc_attr($appearance_settings->logo_size ?? ''); ?>">
         </div>
+		
+		
+		
+		 <!-- Auto Collapse Toggle Field -->
+		<div class="form-group customQy-dashboard-form">
+		<label class="switch customQy-dashboard-switch">
+  <input type="checkbox"id="auto-collapse" name="auto-collapse" 
+                   <?php echo isset($appearance_settings->auto_collapse) && $appearance_settings->auto_collapse ? 'checked' : ''; ?>>
+  <span class="slider round customQy-switch-slider"></span>
+</label>
+		</div>	
+		
+		
+
+        <!-- Collapse Delay Field (only shown if auto-collapse is checked) -->
+        <div class="form-group customQy-dashboard-form" id="collapse-delay-container" style="display: none;">
+            <label for="collapse-delay">Collapse Delay (ms)</label>
+            <input type="number" id="collapse-delay" name="collapse-delay" class="form-control"
+                   placeholder="e.g., 5000" 
+                   value="<?php echo esc_attr($appearance_settings->collapse_delay ?? ''); ?>">
+        </div>
+		
 
         <!-- Save Button -->
         <button type="submit" class="btn btn-primary customQy-form-btn">Save Appearance Settings</button>
@@ -308,6 +343,70 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
 			border:none;
 			box-shadow:none;
 		}
+		
+		/* The switch - the box around the slider */
+.customQy-dashboard-switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+/* Hide default HTML checkbox */
+.customQy-dashboard-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.customQy-switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.customQy-switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .customQy-switch-slider {
+  background-color: #2196F3;
+}
+
+input:focus + .customQy-switch-slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .customQy-switch-slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.customQy-switch-slider.round {
+  border-radius: 34px;
+}
+
+.customQy-switch-slider.round:before {
+  border-radius: 50%;
+}
+		
 </style>
 </div>
 
@@ -359,9 +458,11 @@ document.addEventListener('DOMContentLoaded', function() {
         var responseType = document.getElementById("response_type").value;
         var optionsContainer = document.getElementById("options-container");
         var redirectContainer = document.getElementById("redirect-container");
+		var inputTypeContainer = document.getElementById("input-type-selector");
 
         optionsContainer.style.display = responseType === 'options' ? 'block' : 'none';
         redirectContainer.style.display = responseType === 'redirect' ? 'block' : 'none';
+		inputTypeContainer.style.display = responseType === 'user-input' ? 'block' : 'none';
     }
     
 function addOptionField() {
@@ -601,6 +702,23 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
+	
+	 // JavaScript to handle the show/hide of the collapse delay field
+    document.addEventListener('DOMContentLoaded', function () {
+        const autoCollapseCheckbox = document.getElementById('auto-collapse');
+        const collapseDelayContainer = document.getElementById('collapse-delay-container');
+
+        // Show/hide collapse delay based on the checkbox state
+        function toggleCollapseDelay() {
+            collapseDelayContainer.style.display = autoCollapseCheckbox.checked ? 'block' : 'none';
+        }
+
+        // Initialize visibility on page load
+        toggleCollapseDelay();
+
+        // Add event listener to toggle visibility on checkbox change
+        autoCollapseCheckbox.addEventListener('change', toggleCollapseDelay);
+    });
 
 	
 	   

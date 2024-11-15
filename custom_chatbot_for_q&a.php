@@ -90,6 +90,13 @@ function chatbot_qa_page() {
 
         $option_data = [];
     }
+		elseif ($response_type === 'user-input') {
+        // If it's "options," gather the options data
+        $response_data = $_POST['input-type'];
+		$options = isset($_POST['input-type']) ? $_POST['input-type'] : [];
+
+        $option_data = [];
+    }
 
     // Insert the main question into the database and get the ID
     $wpdb->insert($table_name, [
@@ -112,6 +119,24 @@ function chatbot_qa_page() {
             $option_id = $wpdb->insert_id;
             $option_data[] = ['id' => $option_id, 'text' => $option];
         }
+
+        $response_data = json_encode($option_data);
+
+        // Update the main question with the options data
+        $wpdb->update($table_name, [
+            'response_data' => $response_data,
+        ], ['id' => $question_id]);
+    }
+		  if ($response_type === 'user-input' && !empty($options)) {
+        
+            $wpdb->insert($table_name, [
+                'question' => $options,
+                'parent_id' => $question_id, // Set the parent_id to main question ID
+                'is_option' => 1,
+            ]);
+            $option_id = $wpdb->insert_id;
+            $option_data[] = ['id' => $option_id, 'text' => $options];
+        
 
         $response_data = json_encode($option_data);
 
