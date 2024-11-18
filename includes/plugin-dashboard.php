@@ -29,6 +29,9 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
                 <li class="nav-item">
                     <a class="nav-link" style="color: white; font-size:20px; font-weight:600; margin-top:10px;" href="#appearance-tab" data-toggle="tab">Appearance</a>
                 </li>
+				 <li class="nav-item">
+                    <a class="nav-link" style="color: white; font-size:20px; font-weight:600; margin-top:10px;" href="#leads-tab" data-toggle="tab">Leads</a>
+                </li>
             </ul>
         </div>
     </div>
@@ -281,6 +284,50 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
         <button type="submit" class="btn btn-primary customQy-form-btn">Save Appearance Settings</button>
     </form>
 </div>
+			
+			
+			
+			 <!-- Leads Tab -->
+           <div class="tab-pane fade" id="leads-tab">
+    <div class="border p-4 rounded mb-4 d-flex justify-content-between " style="background-color: black;">
+        <h4 style="color: white;">Leads</h4>
+		 <form method="POST" action="">
+            <button type="submit" name="export_csv" class="btn btn-success">Export to CSV</button>
+        </form>
+    </div>
+    <div class="border p-4 rounded" style="max-height: 590px; overflow-y: scroll;">
+        <?php 
+        global $wpdb;
+        $leads_records = $wpdb->get_results("SELECT * FROM wp_customQY_user_inputs ORDER BY created_at DESC");
+        if ($leads_records && count($leads_records) > 0): ?>
+            <table class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>User Question</th>
+                        <th>User Name</th>
+                        <th>User Email</th>
+                        <th>User Phone</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($leads_records as $record): ?>
+                        <tr>
+                            <td><?php echo esc_html($record->user_statement); ?></td>
+                            <td><?php echo esc_html($record->user_name); ?></td>
+                            <td><?php echo esc_html($record->user_email); ?></td>
+                            <td><?php echo esc_html($record->user_phone); ?></td>
+                            <td><?php echo esc_html($record->created_at); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php else: ?>
+            <p class="text-white">No leads found.</p>
+        <?php endif; ?>
+    </div>
+</div>
+
 
         </div>
     </div>
@@ -723,3 +770,4 @@ document.addEventListener('DOMContentLoaded', function () {
 	
 	   
 </script>
+

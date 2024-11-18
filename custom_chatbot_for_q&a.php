@@ -244,6 +244,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['appearance_form_submi
 }
 
 
+if (isset($_POST['export_csv'])) {
+    global $wpdb;
+
+    // Fetch data from the database
+    $results = $wpdb->get_results("SELECT user_statement, user_name, user_email, user_phone, created_at FROM wp_customQY_user_inputs ORDER BY created_at DESC", ARRAY_A);
+
+    // Define the filename
+    $filename = 'leads_' . date('Ymd') . '.csv';
+
+    // Set headers for file download
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment;filename="' . $filename . '"');
+
+    // Open output stream
+    $output = fopen('php://output', 'w');
+
+    // Add the column headings
+    fputcsv($output, ['User Question', 'User Name', 'User Email', 'User Phone', 'Date']);
+
+    // Add data rows
+    foreach ($results as $row) {
+        fputcsv($output, $row);
+    }
+
+    fclose($output);
+    exit;
+}
+
+
 
 // Activation hook to create the database table
 register_activation_hook(__FILE__, 'create_chatbot_tables');
