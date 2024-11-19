@@ -4,7 +4,12 @@ function get_appearance_settings() {
     $table_name = $wpdb->prefix . 'customQY_appearance_settings';
     return $wpdb->get_row("SELECT * FROM $table_name LIMIT 1");
 }
-
+function get_email_settings() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'customQY_email_settings';
+    return $wpdb->get_row("SELECT * FROM $table_name LIMIT 1");
+}
+$email_settings = get_email_settings();
 $appearance_settings = get_appearance_settings();
 $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
 
@@ -30,8 +35,13 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
                     <a class="nav-link" style="color: white; font-size:20px; font-weight:600; margin-top:10px;" href="#appearance-tab" data-toggle="tab">Appearance</a>
                 </li>
 				 <li class="nav-item">
+                    <a class="nav-link" style="color: white; font-size:20px; font-weight:600; margin-top:10px;" href="#email-settings-tab" data-toggle="tab">Email Settings</a>
+                </li>
+				 <li class="nav-item">
                     <a class="nav-link" style="color: white; font-size:20px; font-weight:600; margin-top:10px;" href="#leads-tab" data-toggle="tab">Leads</a>
                 </li>
+				
+				
             </ul>
         </div>
     </div>
@@ -119,6 +129,7 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
 				</div>
                 <ul class="list-group border p-2 rounded" style="max-height: 590px; overflow-y:scroll;">
                     <?php $qa_records = $wpdb->get_results("SELECT * FROM $table_name WHERE is_option = 0");
+					if($qa_records){
                     foreach ($qa_records as $record): ?>
                         <li class="list-group-item p-3 border-0" style="border-bottom: 1px solid rgba(0, 0, 0, .3) !important;">
                            		<div class="d-flex justify-content-between align-items-center">
@@ -141,13 +152,21 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
                                         }
                                     }
                                 else:
-                                    echo '<div class="border rounded bg-light p-2 column m-1"><span><b>URL:</b> ' . esc_html($record->response_data) . '</span></div><br>';
+                                    echo '<div class="border rounded bg-light p-2 column m-1">
+									<span><b>URL:</b> ' . esc_html($record->response_data) . '</span>
+									<span><b>Parent Id:</b> '. esc_html($record->parent_id) . '</span>
+									</div><br>';
                                 endif; ?>
                             
 									</div>
                             
                         </li>
-                    <?php endforeach; ?>
+                    <?php endforeach;
+					}
+					else{ ?>
+					<h5>No Existing Question found.</h5>
+					<?php }
+					?>
                 </ul>
             </div>
 			
@@ -287,6 +306,57 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
 			
 			
 			
+			 <!-- Email settings Tab -->
+          <div class="tab-pane fade" id="email-settings-tab">
+    <div class="border p-4 rounded mb-4" style="background-color: black;">
+        <h4 style="color: white;">Email Settings</h4>
+    </div>
+    <form id="email-settings-form" method="post" class="border p-4 rounded">
+        <input type="hidden" name="customQY-email_form_submit" value="1">
+		
+		
+		 <!-- Enable Email Toggle -->
+        <div class="form-group customQy-dashboard-form">
+            <label for="enable_email">Enable Email Integration:</label><br>
+            <label class="switch customQy-dashboard-switch">
+                <input type="checkbox" id="enable_email" name="enable_email" <?php echo isset($email_settings->is_enabled) && $email_settings->is_enabled ? 'checked' : ''; ?>>
+                <span class="slider round customQy-switch-slider"></span>
+            </label>
+        </div>
+
+        <!-- Email Field -->
+        <div class="form-group customQy-dashboard-form">
+            <label for="email">Email:</label><br>
+            <input type="email" id="enable_email" name="email" class="form-control" placeholder="Email address to recieve submissions"
+                   value="<?php echo esc_attr($email_settings->email ?? ''); ?>">
+        </div>
+		
+		 <!-- Subject Field -->
+        <div class="form-group customQy-dashboard-form">
+            <label for="subject">Subject:</label><br>
+            <input type="text" id="subject" name="subject" class="form-control" placeholder="Write email subject..."
+                   value="<?php echo esc_attr($email_settings->subject ?? ''); ?>">
+        </div>
+		
+		 <!-- heading Field -->
+        <div class="form-group customQy-dashboard-form">
+            <label for="email_heading">Heading:</label><br>
+            <input type="text" id="email_heading" name="email_heading" class="form-control" placeholder="Write email heading..."
+                   value="<?php echo esc_attr($email_settings->email_heading ?? ''); ?>">
+        </div>
+		
+		
+
+        <!-- Save Button -->
+        <button type="submit" class="btn btn-primary customQy-form-btn">Save Email Settings</button>
+    </form>
+</div>
+			
+			
+			
+			
+			
+			
 			 <!-- Leads Tab -->
            <div class="tab-pane fade" id="leads-tab">
     <div class="border p-4 rounded mb-4 d-flex justify-content-between " style="background-color: black;">
@@ -300,30 +370,94 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
         global $wpdb;
         $leads_records = $wpdb->get_results("SELECT * FROM wp_customQY_user_inputs ORDER BY created_at DESC");
         if ($leads_records && count($leads_records) > 0): ?>
-            <table class="table table-striped table-bordered">
-                <thead>
-                    <tr>
-                        <th>User Question</th>
-                        <th>User Name</th>
-                        <th>User Email</th>
-                        <th>User Phone</th>
-                        <th>Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($leads_records as $record): ?>
-                        <tr>
-                            <td><?php echo esc_html($record->user_statement); ?></td>
-                            <td><?php echo esc_html($record->user_name); ?></td>
-                            <td><?php echo esc_html($record->user_email); ?></td>
-                            <td><?php echo esc_html($record->user_phone); ?></td>
-                            <td><?php echo esc_html($record->created_at); ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <?php
+// Preprocess columns to determine which are non-empty
+$non_empty_columns = [
+    'user_statement' => false,
+    'user_name' => false,
+    'user_email' => false,
+    'user_phone' => false,
+    'selected_options' => false,
+    'created_at' => false,
+];
+
+// Check which columns have non-empty values
+foreach ($leads_records as $record) {
+    foreach ($non_empty_columns as $column => $is_non_empty) {
+        if (!$is_non_empty && !empty($record->$column)) {
+            $non_empty_columns[$column] = true;
+        }
+    }
+}
+
+// Filter out empty columns
+$non_empty_columns = array_filter($non_empty_columns);
+?>
+
+<table class="table table-striped table-bordered">
+    <thead>
+        <tr>
+            <?php if (isset($non_empty_columns['user_statement'])): ?>
+                <th>User Question</th>
+            <?php endif; ?>
+            <?php if (isset($non_empty_columns['user_name'])): ?>
+                <th>User Name</th>
+            <?php endif; ?>
+            <?php if (isset($non_empty_columns['user_email'])): ?>
+                <th>User Email</th>
+            <?php endif; ?>
+            <?php if (isset($non_empty_columns['user_phone'])): ?>
+                <th>User Phone</th>
+            <?php endif; ?>
+            <?php if (isset($non_empty_columns['selected_options'])): ?>
+                <th>Selected Options</th>
+            <?php endif; ?>
+            <?php if (isset($non_empty_columns['created_at'])): ?>
+                <th>Date</th>
+            <?php endif; ?>
+        </tr>
+    </thead>
+    <tbody>
+        <?php foreach ($leads_records as $record): ?>
+            <tr>
+                <?php if (isset($non_empty_columns['user_statement'])): ?>
+                    <td><?php echo esc_html($record->user_statement); ?></td>
+                <?php endif; ?>
+                <?php if (isset($non_empty_columns['user_name'])): ?>
+                    <td><?php echo esc_html($record->user_name); ?></td>
+                <?php endif; ?>
+                <?php if (isset($non_empty_columns['user_email'])): ?>
+                    <td><?php echo esc_html($record->user_email); ?></td>
+                <?php endif; ?>
+                <?php if (isset($non_empty_columns['user_phone'])): ?>
+                    <td><?php echo esc_html($record->user_phone); ?></td>
+                <?php endif; ?>
+                <?php if (isset($non_empty_columns['selected_options'])): ?>
+                    <td>
+                        <?php 
+                        $options = json_decode($record->selected_options, true);
+                        if (is_array($options)) {
+                            $sanitized_options = array_map(function ($option) {
+                                return isset($option['optionText']) ? sanitize_text_field($option['optionText']) : '';
+                            }, $options);
+
+                            echo esc_html(implode(' → ', $options));
+                        } else {
+                            echo esc_html__('No options selected', 'text-domain');
+                        }
+                        ?>
+                    </td>
+                <?php endif; ?>
+                <?php if (isset($non_empty_columns['created_at'])): ?>
+                    <td><?php echo esc_html($record->created_at); ?></td>
+                <?php endif; ?>
+            </tr>
+        <?php endforeach; ?>
+    </tbody>
+</table>
+
         <?php else: ?>
-            <p class="text-white">No leads found.</p>
+            <h5>No leads found.</h5>
         <?php endif; ?>
     </div>
 </div>

@@ -244,11 +244,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['appearance_form_submi
 }
 
 
+
+function save_email_settings() {
+    
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'customQY_email_settings';
+
+        $enable_email = isset($_POST['enable_email']) ? 1 : 0;
+        $email = sanitize_email($_POST['email']);
+        $subject = sanitize_text_field($_POST['subject']);
+        $email_heading = sanitize_text_field($_POST['email_heading']);
+
+        // Check if an entry already exists
+        $existing_settings = $wpdb->get_row("SELECT * FROM $table_name LIMIT 1");
+
+        if ($existing_settings) {
+            $wpdb->update($table_name, [
+                'is_enabled' => $enable_email,
+                'email' => $email,
+                'subject' => $subject,
+                'email_heading' => $email_heading,
+            ], ['id' => $existing_settings->id]);
+        } else {
+            $wpdb->insert($table_name, [
+                'is_enabled' => $enable_email,
+                'email' => $email,
+                'subject' => $subject,
+                'email_heading' => $email_heading,
+            ]);
+        }
+    
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['customQY-email_form_submit']))  {
+    save_email_settings();
+}
+
+
+
 if (isset($_POST['export_csv'])) {
     global $wpdb;
 
     // Fetch data from the database
-    $results = $wpdb->get_results("SELECT user_statement, user_name, user_email, user_phone, created_at FROM wp_customQY_user_inputs ORDER BY created_at DESC", ARRAY_A);
+    $results = $wpdb->get_results("SELECT user_statement, user_name, user_email, user_phone, selected_options, created_at FROM wp_customQY_user_inputs ORDER BY created_at DESC", ARRAY_A);
 
     // Define the filename
     $filename = 'leads_' . date('Ymd') . '.csv';
@@ -261,7 +298,7 @@ if (isset($_POST['export_csv'])) {
     $output = fopen('php://output', 'w');
 
     // Add the column headings
-    fputcsv($output, ['User Question', 'User Name', 'User Email', 'User Phone', 'Date']);
+    fputcsv($output, ['User Question', 'User Name', 'User Email', 'User Phone', 'Selected Options', 'Date']);
 
     // Add data rows
     foreach ($results as $row) {
@@ -271,6 +308,8 @@ if (isset($_POST['export_csv'])) {
     fclose($output);
     exit;
 }
+
+
 
 
 

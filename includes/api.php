@@ -81,39 +81,82 @@ function get_chatbot_appearance_settings() {
 }
 
 
-function save_user_data(WP_REST_Request $request) {
+
+
+
+
+    // Insert data into the database
+ function save_user_data(WP_REST_Request $request) {
     global $wpdb;
 
     // Get data from the request
     $user_data = $request->get_json_params();
 
-//     // Validate the required fields
-//     if (empty($user_data['user_name']) || empty($user_data['user_email']) || empty($user_data['user_phone']) || empty($user_data['user_question'])) {
-//         return new WP_Error('missing_fields', 'Required fields are missing', array('status' => 400));
-//     }
-
-//     // Validate email format
-//     if (!is_email($user_data['user_email'])) {
-//         return new WP_Error('invalid_email', 'Invalid email format', array('status' => 400));
-//     }
+    // Sanitize and encode selected options
+    $selected_options = isset($user_data['selected_options']) ? $user_data['selected_options'] : [];
+    $sanitized_options = array_map(function ($option) {
+        return isset($option['optionText']) ? sanitize_text_field($option['optionText']) : '';
+    }, $selected_options);
+    $selected_options_json = json_encode($sanitized_options);
 
     // Insert data into the database
     $table_name = $wpdb->prefix . 'customQY_user_inputs';
     $inserted = $wpdb->insert(
         $table_name,
         array(
-			'user_statement' => sanitize_textarea_field($user_data['user_question']),
+            'user_statement' => sanitize_textarea_field($user_data['user_question']),
             'user_name' => sanitize_text_field($user_data['user_name']),
             'user_email' => sanitize_email($user_data['user_email']),
             'user_phone' => sanitize_text_field($user_data['user_phone']),
-           
+            'selected_options' => $selected_options_json, // Save selected options as JSON
         ),
-        array('%s', '%s', '%s', '%s')
+        array('%s', '%s', '%s', '%s', '%s')
     );
 
     if ($inserted === false) {
         error_log("Database error: " . $wpdb->last_error);
         return new WP_Error('db_error', 'Failed to save user data', array('status' => 500));
+    }
+
+   // Check if email integration is enabled
+    $email_settings_table = $wpdb->prefix . 'customQY_email_settings';
+    $email_settings = $wpdb->get_row("SELECT * FROM $email_settings_table LIMIT 1");
+
+    if ($email_settings && $email_settings->is_enabled) {
+        // Email Integration
+        $email_body = "<h2>" . esc_html($email_settings->email_heading) . "</h2>";
+        $non_empty_fields = [];
+
+        if (!empty($user_data['user_question'])) {
+            $non_empty_fields['User Question'] = sanitize_text_field($user_data['user_question']);
+        }
+        if (!empty($user_data['user_name'])) {
+            $non_empty_fields['User Name'] = sanitize_text_field($user_data['user_name']);
+        }
+        if (!empty($user_data['user_email'])) {
+            $non_empty_fields['User Email'] = sanitize_email($user_data['user_email']);
+        }
+        if (!empty($user_data['user_phone'])) {
+            $non_empty_fields['User Phone'] = sanitize_text_field($user_data['user_phone']);
+        }
+        if (!empty($sanitized_options)) {
+            $non_empty_fields['Selected Options'] = implode(' → ', $sanitized_options);
+        }
+
+        foreach ($non_empty_fields as $key => $value) {
+            $email_body .= "<p><strong>$key:</strong> $value</p>";
+        }
+
+        // Send Email
+        $to = sanitize_email($email_settings->email);
+        $subject = sanitize_text_field($email_settings->subject);
+        $headers = ['Content-Type: text/html; charset=UTF-8'];
+
+        $email_sent = wp_mail($to, $subject, $email_body, $headers);
+
+        if (!$email_sent) {
+            error_log("Failed to send email for user input.");
+        }
     }
 
     return array(
@@ -122,5 +165,3 @@ function save_user_data(WP_REST_Request $request) {
         'data' => $user_data
     );
 }
-
-
