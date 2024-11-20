@@ -178,28 +178,93 @@ if (isset($_GET['delete'])) {
 
 
 if (isset($_POST['update_question'])) {
-    global $wpdb; // Ensure $wpdb is accessible
-    $table_name = $wpdb->prefix . 'customQY_chatbot_flow'; // Define table name
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'customQY_chatbot_flow';
 
     $id = intval($_POST['edit_id']);
     $question = sanitize_text_field($_POST['edit_question']);
     $response_type = sanitize_text_field($_POST['edit_response_type']);
     $response_data = '';
 
-    if ($response_type === 'redirect' && isset($_POST['edit_redirect_link'])) {
+    if ($response_type === 'options' && isset($_POST['edit_options'])) {
+        $options = array_map('sanitize_text_field', $_POST['edit_options']);
+
+        // Fetch existing child options to maintain IDs
+        $existing_children = $wpdb->get_results(
+            $wpdb->prepare("SELECT id, question FROM $table_name WHERE parent_id = %d", $id)
+        );
+
+        $existing_children_ids = array_map(function ($child) {
+            return $child->id;
+        }, $existing_children);
+
+        $new_options = array_slice($options, 0, count($options));
+        $new_children_count = count($new_options);
+
+        $updated_response_data = [];
+
+        // Update existing child options
+        foreach ($new_options as $index => $new_option) {
+            if ($index < count($existing_children_ids)) {
+                $child_id = $existing_children_ids[$index];
+                $wpdb->update(
+                    $table_name,
+                    ['question' => $new_option],
+                    ['id' => $child_id],
+                    ['%s'],
+                    ['%d']
+                );
+                $updated_response_data[] = ['id' => $child_id, 'text' => $new_option];
+            } else {
+                // Add new child option if more options are provided
+                $wpdb->insert(
+                    $table_name,
+                    [
+                        'question' => $new_option,
+                        'parent_id' => $id,
+                        'is_option' => 1,
+                    ],
+                    ['%s', '%d', '%d']
+                );
+                $new_child_id = $wpdb->insert_id;
+                $updated_response_data[] = ['id' => $new_child_id, 'text' => $new_option];
+            }
+        }
+
+        // Remove excess children if fewer options are provided
+        if ($new_children_count < count($existing_children_ids)) {
+            $ids_to_remove = array_slice($existing_children_ids, $new_children_count);
+            foreach ($ids_to_remove as $child_id) {
+                $wpdb->delete($table_name, ['id' => $child_id], ['%d']);
+            }
+        }
+
+        // Encode the updated response_data
+        $response_data = json_encode($updated_response_data);
+    } elseif ($response_type === 'redirect' && isset($_POST['edit_redirect_link'])) {
         $response_data = sanitize_text_field($_POST['edit_redirect_link']);
-    } elseif ($response_type === 'options') {
-        $options = isset($_POST['edit_options']) ? array_map('sanitize_text_field', $_POST['edit_options']) : [];
-        $response_data = json_encode(array_map(function($opt) { return ['text' => $opt]; }, $options));
     }
 
-    // Update question in the database
-    $wpdb->update($table_name, [
-        'question' => $question,
-        'response_type' => $response_type,
-        'response_data' => $response_data
-    ], ['id' => $id]);
+    $result = $wpdb->update(
+        $table_name,
+        [
+            'question' => $question,
+            'response_type' => $response_type,
+            'response_data' => $response_data,
+        ],
+        ['id' => $id],
+        ['%s', '%s', '%s'],
+        ['%d']
+    );
+
+//     if ($result === false) {
+//         echo '<div class="notice notice-error"><p>Failed to update question.</p></div>';
+//     } else {
+//         echo '<div class="notice notice-success"><p>Question and child options updated successfully.</p></div>';
+//     }
 }
+
+
 
 
 function save_appearance_settings() {

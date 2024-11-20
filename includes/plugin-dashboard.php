@@ -188,7 +188,7 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
             <input type="text" name="edit_question" id="edit_question" class="form-control" required>
         </div>
 
-        <div class="form-group customQy-dashboard-form">
+        <div class="form-group customQy-dashboard-form" style="display:none;">
             <label for="edit_response_type">Response Type</label>
             <select name="edit_response_type" id="edit_response_type" class="form-control" onchange="toggleEditOptionsFields()" required>
                 <option value="options">Options</option>
@@ -202,7 +202,7 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
         <div id="edit-options-container" class="form-group customQy-dashboard-form">
             <label>Options</label>
             <div id="edit-options-wrapper"></div>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="addEditOptionField()">Add More Option</button>
+<!--             <button type="button" class="btn btn-secondary btn-sm" onclick="addOptionField()">Add More Option</button> -->
         </div>
 
         <div id="edit-redirect-container" class="form-group customQy-dashboard-form" style="display: none;">
@@ -777,50 +777,63 @@ document.querySelectorAll('.option-item').forEach(option => {
         });
     });
 
-    function editQuestion(id) {
-        <?php
-        // Pass records to JavaScript
-        $js_records = json_encode($qa_records);
-        echo "const records = $js_records;";
-        ?>
+  function editQuestion(id) {
+    <?php
+    // Pass records to JavaScript
+    $js_records = json_encode($qa_records);
+    echo "const records = $js_records;";
+    ?>
 
-        // Find the question record by id
-        const record = records.find(r => r.id == id);
+    const record = records.find(r => r.id == id);
 
-        if (record) {
-            // Populate the edit form
-            document.getElementById("edit_id").value = record.id;
-            document.getElementById("edit_question").value = record.question;
-            document.getElementById("edit_response_type").value = record.response_type;
+    if (record) {
+        document.getElementById("edit_id").value = record.id;
+        document.getElementById("edit_question").value = record.question;
+        document.getElementById("edit_response_type").value = record.response_type;
 
-            // Show options or redirect link based on response type
-            if (record.response_type === 'options') {
-                document.getElementById("edit-options-container").style.display = 'block';
-                document.getElementById("edit-redirect-container").style.display = 'none';
-                
-                const optionsWrapper = document.getElementById("edit-options-wrapper");
-                optionsWrapper.innerHTML = '';
-                const options = JSON.parse(record.response_data);
-                
-                options.forEach(opt => {
-                    const optionField = document.createElement("div");
-                    optionField.classList.add("mb-2");
-                    optionField.innerHTML = `<input type="text" name="edit_options[]" class="form-control" value="${opt.text}">`;
-                    optionsWrapper.appendChild(optionField);
-                });
-            } else if (record.response_type === 'redirect') {
-                document.getElementById("edit-options-container").style.display = 'none';
-                document.getElementById("edit-redirect-container").style.display = 'block';
-                document.getElementById("edit_redirect_link").value = record.response_data;
-            }
+        // Toggle visibility of fields
+        toggleEditOptionsFields(record.response_type);
 
-            // Show the edit form
-            document.getElementById("customQY-edit-form-container").style.display = 'block';
-			 document.getElementById("customQY-overlay").style.display = "block";
-        } else {
-            console.error('Record not found for editing');
+        if (record.response_type === 'options') {
+            const optionsWrapper = document.getElementById("edit-options-wrapper");
+            optionsWrapper.innerHTML = '';
+            const options = JSON.parse(record.response_data || '[]');
+
+            options.forEach(opt => {
+                const optionField = document.createElement("div");
+                optionField.classList.add("mb-2");
+                optionField.innerHTML = `
+                    <input type="text" name="edit_options[]" class="form-control" value="${opt.text || ''}">
+                `;
+                optionsWrapper.appendChild(optionField);
+            });
+        } else if (record.response_type === 'redirect') {
+            document.getElementById("edit_redirect_link").value = record.response_data;
         }
+
+        document.getElementById("customQY-edit-form-container").style.display = "block";
+        document.getElementById("customQY-overlay").style.display = "block";
+    } else {
+        console.error("Record not found for editing.");
     }
+}
+
+function toggleEditOptionsFields(responseType) {
+    const optionsContainer = document.getElementById("edit-options-container");
+    const redirectContainer = document.getElementById("edit-redirect-container");
+
+    if (responseType === "options") {
+        optionsContainer.style.display = "block";
+        redirectContainer.style.display = "none";
+    } else if (responseType === "redirect") {
+        optionsContainer.style.display = "none";
+        redirectContainer.style.display = "block";
+    } else {
+        optionsContainer.style.display = "none";
+        redirectContainer.style.display = "none";
+    }
+}
+
 
 
 	   
