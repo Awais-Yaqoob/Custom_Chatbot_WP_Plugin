@@ -363,6 +363,7 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
         <h4 style="color: white;">Leads</h4>
 		 <form method="POST" action="">
             <button type="submit" name="export_csv" class="btn btn-success">Export to CSV</button>
+			  <button type="submit" name="clear_all_leads" class="btn btn-danger">Clear all leads</button>
         </form>
     </div>
     <div class="border p-4 rounded" style="max-height: 590px; overflow-y: scroll;">

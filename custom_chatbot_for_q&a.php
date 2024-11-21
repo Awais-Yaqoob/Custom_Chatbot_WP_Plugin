@@ -15,14 +15,14 @@ if (!defined('ABSPATH')) {
 function react_chatbot_enqueue_scripts() {
     wp_enqueue_script(
         'react-chatbot-script',
-        plugins_url('assets/index-35ZY6q-E.js', __FILE__), 
+        plugins_url('assets/index-BRVliS5r.js', __FILE__), 
         array(),
         null,
         true
     );
     wp_enqueue_style(
         'react-chatbot-style',
-        plugins_url('assets/index-Dt1CQmON.css', __FILE__)
+        plugins_url('assets/index-CZXnKLF3.css', __FILE__)
     );
 }
 add_action('wp_enqueue_scripts', 'react_chatbot_enqueue_scripts', 20);
@@ -374,6 +374,12 @@ if (isset($_POST['export_csv'])) {
     exit;
 }
 
+if (isset($_POST['clear_all_leads'])) {
+    global $wpdb;
+
+    // Delete all rows from the wp_customQY_user_inputs table
+    $wpdb->query("DELETE FROM wp_customQY_user_inputs");
+}
 
 
 
