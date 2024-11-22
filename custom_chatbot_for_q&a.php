@@ -15,14 +15,14 @@ if (!defined('ABSPATH')) {
 function react_chatbot_enqueue_scripts() {
     wp_enqueue_script(
         'react-chatbot-script',
-        plugins_url('assets/index-BRVliS5r.js', __FILE__), 
+        plugins_url('assets/index-lRVYt66b.js', __FILE__), 
         array(),
         null,
         true
     );
     wp_enqueue_style(
         'react-chatbot-style',
-        plugins_url('assets/index-CZXnKLF3.css', __FILE__)
+        plugins_url('assets/index-Z_G8urcb.css', __FILE__)
     );
 }
 add_action('wp_enqueue_scripts', 'react_chatbot_enqueue_scripts', 20);
