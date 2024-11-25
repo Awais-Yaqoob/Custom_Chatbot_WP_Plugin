@@ -15,14 +15,14 @@ if (!defined('ABSPATH')) {
 function react_chatbot_enqueue_scripts() {
     wp_enqueue_script(
         'react-chatbot-script',
-        plugins_url('assets/index-lRVYt66b.js', __FILE__), 
+        plugins_url('assets/index-Driau5As.js', __FILE__), 
         array(),
         null,
         true
     );
     wp_enqueue_style(
         'react-chatbot-style',
-        plugins_url('assets/index-Z_G8urcb.css', __FILE__)
+        plugins_url('assets/index-CNkWsFPE.css', __FILE__)
     );
 }
 add_action('wp_enqueue_scripts', 'react_chatbot_enqueue_scripts', 20);
@@ -348,9 +348,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['customQY-email_form_s
 
 if (isset($_POST['export_csv'])) {
     global $wpdb;
-
+    $table_name_leads = $wpdb->prefix . 'customQY_user_inputs';
     // Fetch data from the database
-    $results = $wpdb->get_results("SELECT user_statement, user_name, user_email, user_phone, selected_options, created_at FROM wp_customQY_user_inputs ORDER BY created_at DESC", ARRAY_A);
+    $results = $wpdb->get_results("SELECT user_statement, user_name, user_email, user_phone, selected_options, created_at FROM $table_name_leads ORDER BY created_at DESC", ARRAY_A);
 
     // Define the filename
     $filename = 'leads_' . date('Ymd') . '.csv';

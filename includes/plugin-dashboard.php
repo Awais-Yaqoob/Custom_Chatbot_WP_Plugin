@@ -369,7 +369,8 @@ $available_fonts = include plugin_dir_path(__FILE__) . 'customQY-fonts.php';
     <div class="border p-4 rounded" style="max-height: 590px; overflow-y: scroll;">
         <?php 
         global $wpdb;
-        $leads_records = $wpdb->get_results("SELECT * FROM wp_customQY_user_inputs ORDER BY created_at DESC");
+        $table_name_leads = $wpdb->prefix . 'customQY_user_inputs';
+        $leads_records = $wpdb->get_results("SELECT * FROM $table_name_leads ORDER BY created_at DESC");
         if ($leads_records && count($leads_records) > 0): ?>
             <?php
 // Preprocess columns to determine which are non-empty
