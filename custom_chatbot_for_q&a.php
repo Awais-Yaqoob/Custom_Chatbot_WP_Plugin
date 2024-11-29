@@ -24,6 +24,45 @@ function react_chatbot_enqueue_scripts() {
         'react-chatbot-style',
         plugins_url('assets/index-CNkWsFPE.css', __FILE__)
     );
+
+    // Fetch the user-selected font from the database
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'customQY_appearance_settings'; // Replace with the actual table name
+    $selected_font = $wpdb->get_var("SELECT font FROM {$table_name} WHERE id = 1"); // Adjust the query to your database schema
+
+    // Default to a safe font if no font is selected
+    $font_family = $selected_font ? $selected_font : 'Poppins';
+
+    // Map to a Google Fonts-friendly name if needed
+    $google_fonts = [
+        'Poppins' => 'Poppins:wght@400;600',
+        'Roboto' => 'Roboto:wght@400;700',
+        'Lato' => 'Lato:wght@400;700',
+        'Montserrat' => 'Montserrat:wght@400;600',
+        'Open Sans' => 'Open+Sans:wght@400;600',
+        'Source Sans Pro' => 'Source+Sans+Pro:wght@400;600',
+        'Playfair Display' => 'Playfair+Display:wght@400;700',
+        'Merriweather' => 'Merriweather:wght@400;700',
+        'Nunito' => 'Nunito:wght@400;700',
+        'Raleway' => 'Raleway:wght@400;600',
+        'Oswald' => 'Oswald:wght@400;600',
+        'Ubuntu' => 'Ubuntu:wght@400;700',
+        'PT Sans' => 'PT+Sans:wght@400;700',
+        'Quicksand' => 'Quicksand:wght@400;600',
+        'Work Sans' => 'Work+Sans:wght@400;600',
+    ];
+
+    // Check if the selected font is available in the Google Fonts list
+    $google_font_query = isset($google_fonts[$font_family]) ? $google_fonts[$font_family] : 'Poppins:wght@400;600';
+
+    // Construct the Google Fonts URL
+    $google_fonts_url = "https://fonts.googleapis.com/css2?family={$google_font_query}&display=swap";
+
+    // Enqueue the dynamically selected Google Font
+    wp_enqueue_style('google-fonts', $google_fonts_url, array(), null);
+	
+	
+
 }
 add_action('wp_enqueue_scripts', 'react_chatbot_enqueue_scripts', 20);
 
